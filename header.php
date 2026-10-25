@@ -11,7 +11,8 @@
 
 <a class="skip-link" href="#main"><?php esc_html_e('Zum Inhalt springen', 'wildtierhilfe'); ?></a>
 
-<header id="site-header" class="site-header">
+<?php // Auf der Startseite liegt der Header transparent über dem Karussell (nav.js schaltet um) ?>
+<header id="site-header" class="site-header<?php echo is_home() ? ' is-transparent' : ''; ?>">
 	<div class="container site-header__inner">
 
 		<!-- Logo + Vereinsname -->

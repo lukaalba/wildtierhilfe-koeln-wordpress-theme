@@ -151,6 +151,20 @@ img {
 	background: var(--color-mint);
 	color: var(--color-brand);
 	box-shadow: var(--shadow-lg);
+	transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+}
+
+/* Über dem Karussell: ohne Hintergrund, Schrift und Hamburger weiß.
+   nav.js entfernt die Klasse, sobald das Karussell aus dem Blickfeld ist. */
+.site-header.is-transparent {
+	background-color: transparent;
+	color: #fff;
+	box-shadow: none;
+}
+
+/* Startseite: kein Platz für den Header reservieren – das Karussell liegt darunter */
+body.has-hero {
+	padding-top: 0;
 }
 
 /* Unterhalb der WordPress-Admin-Leiste (nur für eingeloggte Benutzer) */
@@ -252,6 +266,7 @@ body.admin-bar .site-header {
 	padding: 1rem 0.75rem;
 	border-radius: 1rem;
 	background: #fff;
+	color: var(--color-brand); /* nicht vom (evtl. weißen) Header erben */
 	box-shadow: var(--shadow-xl);
 }
 
@@ -318,7 +333,7 @@ body.admin-bar .main-nav {
    ========================================================================== */
 .hero {
 	position: relative;
-	height: calc(96vh - var(--header-height));
+	height: 96vh; /* inkl. des Headers, der über dem Karussell liegt */
 	min-height: 28rem;
 	overflow: hidden;
 	background: var(--color-brand); /* sichtbar, solange noch kein Bild hinterlegt ist */

@@ -296,6 +296,31 @@ add_action('acf/init', function () {
 });
 
 /**
+ * Startseite mit Bilderrotation: Klasse "has-hero" am body – das Karussell
+ * beginnt dann ganz oben und der Header liegt darüber (style.css).
+ */
+add_filter('body_class', function ($classes) {
+	if (is_home()) {
+		$classes[] = 'has-hero';
+	}
+
+	return $classes;
+});
+
+/**
+ * WordPress-Emoji-Skript abschalten: Es speichert ein Testergebnis im
+ * sessionStorage des Browsers und lädt bei Bedarf Emoji-Grafiken von
+ * s.w.org (WordPress.org). Moderne Browser stellen Emojis ohnehin selbst dar.
+ * So setzt die Seite nichts auf dem Gerät der Besucher und lädt nichts von
+ * fremden Servern (siehe auch: kein Cookie-Banner nötig).
+ */
+remove_action('wp_head', 'print_emoji_detection_script', 7);
+remove_action('wp_print_styles', 'print_emoji_styles');
+remove_action('admin_print_scripts', 'print_emoji_detection_script');
+remove_action('admin_print_styles', 'print_emoji_styles');
+add_filter('emoji_svg_url', '__return_false');
+
+/**
  * Version einer Asset-Datei: Änderungszeitpunkt (verhindert Browser-Caching beim Entwickeln).
  * Fällt auf die Theme-Version zurück, falls die Datei (noch) nicht existiert.
  */

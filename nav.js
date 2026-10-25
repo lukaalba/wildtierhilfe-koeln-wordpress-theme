@@ -1,3 +1,26 @@
+// Startseite: Header transparent, solange das Karussell hinter ihm zu sehen ist;
+// sobald es nach oben aus dem Bild gescrollt ist, normaler Header.
+document.addEventListener('DOMContentLoaded', function () {
+	var header = document.getElementById('site-header');
+	var hero = document.querySelector('.hero');
+
+	if (!header || !hero || !('IntersectionObserver' in window)) {
+		if (header) {
+			header.classList.remove('is-transparent');
+		}
+		return;
+	}
+
+	// Beobachtet wird nur der Bereich unterhalb des Headers.
+	var headerBottom = Math.round(header.getBoundingClientRect().bottom);
+
+	new IntersectionObserver(function (entries) {
+		header.classList.toggle('is-transparent', entries[0].isIntersecting);
+	}, {
+		rootMargin: '-' + headerBottom + 'px 0px 0px 0px',
+	}).observe(hero);
+});
+
 document.addEventListener('DOMContentLoaded', function () {
 	var toggle = document.getElementById('nav-toggle');
 	var nav = document.getElementById('primary-nav');
