@@ -1,0 +1,350 @@
+/* ==========================================================================
+   Block-Stile für den Editor (registriert in functions.php)
+   Wird im Frontend und im Block-Editor geladen.
+   ========================================================================== */
+
+/* Infobox: Gruppen-Block mit Stil "Infobox" */
+.wp-block-group.is-style-infobox {
+	margin-block: 2.5rem;
+	padding: 1.5rem;
+	border-radius: 0.75rem;
+	background: #f5ece0;
+}
+
+@media (min-width: 768px) {
+	.wp-block-group.is-style-infobox {
+		padding: 2rem;
+	}
+}
+
+.wp-block-group.is-style-infobox > * {
+	margin-block: 0;
+}
+
+.wp-block-group.is-style-infobox > * + * {
+	margin-top: 1rem;
+}
+
+.wp-block-group.is-style-infobox :is(h2, h3, h4) {
+	font-size: 1.5rem;
+	line-height: 1.25;
+	font-weight: 700;
+	color: #245b38;
+}
+
+@media (min-width: 768px) {
+	.wp-block-group.is-style-infobox :is(h2, h3, h4) {
+		font-size: 1.875rem;
+	}
+}
+
+/* Tierart: "Medien und Text"-Block mit Stil "Tierart".
+   Auf dem Smartphone Bild über dem Text, ab 768 px nebeneinander:
+   1. Tierart Bild rechts, 2. links, 3. rechts usw. – unabhängig von der
+   Einstellung "Medien rechts anzeigen" im Editor. */
+.wp-block-media-text.is-style-tierart {
+	grid-template-columns: 1fr;
+	gap: 2rem;
+	align-items: center;
+	margin-block: 0;
+}
+
+.wp-block-media-text.is-style-tierart + .wp-block-media-text.is-style-tierart {
+	margin-top: 4rem;
+}
+
+.wp-block-media-text.is-style-tierart > .wp-block-media-text__media {
+	grid-column: 1;
+	grid-row: 1;
+}
+
+.wp-block-media-text.is-style-tierart > .wp-block-media-text__content {
+	grid-column: 1;
+	grid-row: 2;
+	padding: 0;
+}
+
+@media (min-width: 768px) {
+	.wp-block-media-text.is-style-tierart {
+		grid-template-columns: 1fr 1fr;
+		gap: 4rem;
+	}
+
+	.wp-block-media-text.is-style-tierart + .wp-block-media-text.is-style-tierart {
+		margin-top: 6rem;
+	}
+
+	/* ungerade: Text links, Bild rechts */
+	.wp-block-media-text.is-style-tierart:nth-child(odd of .is-style-tierart) > .wp-block-media-text__content {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	.wp-block-media-text.is-style-tierart:nth-child(odd of .is-style-tierart) > .wp-block-media-text__media {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	/* gerade: Bild links, Text rechts */
+	.wp-block-media-text.is-style-tierart:nth-child(even of .is-style-tierart) > .wp-block-media-text__media {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	.wp-block-media-text.is-style-tierart:nth-child(even of .is-style-tierart) > .wp-block-media-text__content {
+		grid-column: 2;
+		grid-row: 1;
+	}
+}
+
+.wp-block-media-text.is-style-tierart .wp-block-media-text__media img {
+	width: 100%;
+	aspect-ratio: 4 / 3;
+	object-fit: cover;
+	border-radius: 0.75rem;
+	box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.wp-block-media-text.is-style-tierart .wp-block-media-text__content > * {
+	margin-block: 0;
+}
+
+.wp-block-media-text.is-style-tierart .wp-block-media-text__content > * + * {
+	margin-top: 1.5rem;
+}
+
+.wp-block-media-text.is-style-tierart .wp-block-media-text__content :is(h2, h3, h4) {
+	font-size: 1.875rem;
+	line-height: 1.2;
+	font-weight: 700;
+	color: #245b38;
+}
+
+@media (min-width: 768px) {
+	.wp-block-media-text.is-style-tierart .wp-block-media-text__content :is(h2, h3, h4) {
+		font-size: 2.25rem;
+	}
+}
+
+/* Karte: Gruppe mit Stil "Karte". Die Höhe ergibt sich aus dem Inhalt.
+   Schalter im Editor (editor.js): "Volle Breite" → .is-karte-breit,
+   "Schatten statt Rahmen" → .is-karte-schatten.
+   Anordnung mehrerer Karten: siehe "Beitragsinhalt mit Karten" am Ende der Datei.
+   Weiß ist nur die Voreinstellung – eine im Editor gewählte Hintergrundfarbe
+   (.has-background) hat Vorrang. */
+.is-style-karte {
+	display: flex;
+	flex-direction: column;
+	padding: 1.5rem;
+	border: 2px solid #245b38;
+	border-radius: 0.75rem;
+}
+
+.is-style-karte:not(.has-background) {
+	background: #fff;
+}
+
+.is-style-karte > * {
+	margin-block: 0;
+}
+
+.is-style-karte > * + * {
+	margin-top: 1.5rem;
+}
+
+/* Buttons am Ende der Karte sitzen am unteren Rand – so stehen sie bei
+   gleich hohen Karten nebeneinander auf einer Linie. */
+.is-style-karte > .wp-block-buttons:last-child {
+	margin-top: auto;
+	padding-top: 1.5rem;
+}
+
+/* Schalter "Schatten statt Rahmen" (Rahmen bleibt unsichtbar erhalten,
+   damit sich die Größe nicht ändert) */
+.is-style-karte.is-karte-schatten {
+	border-color: transparent;
+	box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Ist die Karte allein in einer Spalte (Block "Spalten"), wird sie so hoch
+   wie die Spalte daneben. */
+.wp-block-column:has(> .is-style-karte:only-child) {
+	display: flex;
+	flex-direction: column;
+}
+
+.wp-block-column > .is-style-karte:only-child {
+	flex: 1;
+}
+
+.is-style-karte :is(h2, h3, h4) {
+	font-size: 1.5rem;
+	line-height: 1.25;
+	font-weight: 700;
+	color: #245b38;
+}
+
+/* Liste mit "•" ohne Einrückung */
+.is-style-karte ul {
+	padding: 0;
+	list-style: none;
+}
+
+.is-style-karte li + li {
+	margin-top: 0.5rem;
+}
+
+.is-style-karte li::before {
+	content: "• ";
+}
+
+/* Kontaktangabe: Gruppe mit Stil "Kontakt: E-Mail/Telefon/Adresse/Instagram/Facebook".
+   Icon links, erster Absatz = fette Bezeichnung, danach der Wert. */
+[class*="is-style-kontakt-"] {
+	position: relative;
+	padding-left: 2.25rem;
+}
+
+[class*="is-style-kontakt-"]::before {
+	content: "";
+	position: absolute;
+	top: 0.125rem;
+	left: 0;
+	width: 1.5rem;
+	height: 1.5rem;
+	background-color: #245b38;
+	-webkit-mask: var(--kontakt-icon) center / contain no-repeat;
+	mask: var(--kontakt-icon) center / contain no-repeat;
+}
+
+.is-style-kontakt-email {
+	--kontakt-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='20' height='16' x='2' y='4' rx='2'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/svg%3E");
+}
+
+.is-style-kontakt-telefon {
+	--kontakt-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z'/%3E%3C/svg%3E");
+}
+
+.is-style-kontakt-adresse {
+	--kontakt-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z'/%3E%3Ccircle cx='12' cy='10' r='3'/%3E%3C/svg%3E");
+}
+
+.is-style-kontakt-instagram {
+	--kontakt-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect width='20' height='20' x='2' y='2' rx='5' ry='5'/%3E%3Cpath d='M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z'/%3E%3Cline x1='17.5' x2='17.51' y1='6.5' y2='6.5'/%3E%3C/svg%3E");
+}
+
+.is-style-kontakt-facebook {
+	--kontakt-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z'/%3E%3C/svg%3E");
+}
+
+[class*="is-style-kontakt-"] > * {
+	margin-block: 0;
+}
+
+[class*="is-style-kontakt-"] > :first-child {
+	font-weight: 700;
+	color: #245b38;
+}
+
+[class*="is-style-kontakt-"] a {
+	color: inherit;
+	text-decoration: none;
+}
+
+[class*="is-style-kontakt-"] a:hover {
+	text-decoration: underline;
+}
+
+[class*="is-style-kontakt-"] + [class*="is-style-kontakt-"] {
+	margin-top: 1.25rem;
+}
+
+/* Aufruf: Gruppe mit Stil "Aufruf" */
+.wp-block-group.is-style-aufruf {
+	margin-block: 3rem;
+	padding: 2rem 1.5rem;
+	border: 2px solid #245b38;
+	border-radius: 0.75rem;
+	background: #e8f5e0;
+	color: #245b38;
+	text-align: center;
+}
+
+@media (min-width: 768px) {
+	.wp-block-group.is-style-aufruf {
+		padding: 2.5rem;
+	}
+}
+
+.wp-block-group.is-style-aufruf > * {
+	margin-block: 0;
+}
+
+.wp-block-group.is-style-aufruf > * + * {
+	margin-top: 1.5rem;
+}
+
+.wp-block-group.is-style-aufruf > * + .wp-block-buttons {
+	margin-top: 2rem;
+}
+
+.wp-block-group.is-style-aufruf :is(h2, h3, h4) {
+	font-size: 1.875rem;
+	line-height: 1.2;
+	font-weight: 700;
+}
+
+/* Buttons: in Markengrün, abgerundet */
+.wp-block-button__link {
+	padding: 0.75rem 2rem;
+	border-radius: 9999px;
+	background: #245b38;
+	color: #fff;
+	font-size: 1.125rem;
+	line-height: 1.5rem;
+	font-weight: 700;
+	text-decoration: none;
+	transition: background-color 0.15s;
+}
+
+.wp-block-button__link:hover {
+	background: #1d4a2d;
+	color: #fff;
+}
+
+/* Beitragsinhalt mit Karten: Enthält ein Beitrag Karten, wird sein Inhalt zum
+   Raster mit zwei Spalten (Smartphone: eine). Aufeinanderfolgende Karten stehen
+   paarweise nebeneinander und gleich hoch, alle anderen Blöcke nutzen die volle
+   Breite. Die Abstände kommen dann aus "gap" statt aus den Außenabständen.
+   .entry__content = Frontend (index.php), .is-root-container = Block-Editor. */
+:is(.entry__content, .is-root-container):has(> .is-style-karte) {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 1.5rem 2rem;
+}
+
+@media (min-width: 640px) {
+	:is(.entry__content, .is-root-container):has(> .is-style-karte) {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+:is(.entry__content, .is-root-container):has(> .is-style-karte) > * {
+	grid-column: 1 / -1;
+	margin: 0;
+}
+
+:is(.entry__content, .is-root-container):has(> .is-style-karte) > .is-style-karte {
+	grid-column: auto;
+}
+
+/* Schalter "Volle Breite" im Editor */
+:is(.entry__content, .is-root-container):has(> .is-style-karte) > .is-style-karte.is-karte-breit {
+	grid-column: 1 / -1;
+}
+
+/* Hervorgehobene Boxen und der Block nach den Karten bekommen mehr Luft */
+:is(.entry__content, .is-root-container):has(> .is-style-karte) > :is(.is-style-infobox, .is-style-aufruf),
+:is(.entry__content, .is-root-container):has(> .is-style-karte) > .is-style-karte + :not(.is-style-karte) {
+	margin-top: 1.5rem;
+}

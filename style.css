@@ -1,0 +1,591 @@
+/*
+Theme Name: Wildtierhilfe Theme
+Description: Eigenes Theme für die Wildtierhilfe Köln und Umgebung e.V.
+Version: 0.3.0
+Requires at least: 6.0
+Requires PHP: 7.4
+Text Domain: wildtierhilfe
+*/
+
+/* ==========================================================================
+   Schrift: Rubik (lokal)
+   Variable Schrift (Stärken 300–900) als WOFF2, umgewandelt aus
+   "Rubik-VariableFont_wght.ttf" aus dem Google-Fonts-Download.
+   ========================================================================== */
+@font-face {
+	font-family: "Rubik";
+	src: url("assets/fonts/Rubik-VariableFont_wght.woff2") format("woff2");
+	font-weight: 300 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+/* ==========================================================================
+   Design-Werte aus dem Entwurf
+   ========================================================================== */
+:root {
+	--color-brand: #245b38;
+	--color-brand-dark: #1d4a2d;
+	--color-mint: #e8f5e0;
+	--color-cream: #f5f4e0;
+	--color-sand: #f5ece0;
+	--color-text: #374151;
+
+	--font-main: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+	--header-height: 4rem; /* Höhe des Headers (80 px); Logo und Hamburger werden darin vertikal zentriert */
+	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+	--shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/* ==========================================================================
+   Grundlagen
+   ========================================================================== */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	scroll-behavior: smooth;
+	scroll-padding-top: calc(var(--header-height) + 1rem); /* Anker nicht unter dem fixen Header */
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+}
+
+body {
+	min-height: 100vh;
+	margin: 0;
+	padding-top: var(--header-height); /* Platz für den fixen Header */
+	background: #fff;
+	color: var(--color-text);
+	font-family: var(--font-main);
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+	display: block;
+	max-width: 100%;
+}
+
+img {
+	height: auto;
+}
+
+:focus-visible {
+	outline: 2px solid var(--color-brand);
+	outline-offset: 2px;
+}
+
+/* Inhaltsbreite wie im Entwurf: Die maximale Breite wächst stufenweise mit dem
+   Bildschirm (so verhält sich "container mx-auto px-6" in Tailwind).
+   Der Header hebt die max-width auf (siehe .site-header__inner). */
+.container {
+	width: 100%;
+	margin-inline: auto;
+	padding-inline: 1.5rem;
+}
+
+@media (min-width: 640px) {
+	.container {
+		max-width: 640px;
+	}
+}
+
+@media (min-width: 768px) {
+	.container {
+		max-width: 768px;
+	}
+}
+
+@media (min-width: 1024px) {
+	.container {
+		max-width: 1024px;
+	}
+}
+
+@media (min-width: 1280px) {
+	.container {
+		max-width: 1280px;
+	}
+}
+
+@media (min-width: 1536px) {
+	.container {
+		max-width: 1536px;
+	}
+}
+
+/* "Zum Inhalt springen" – nur bei Tastaturfokus sichtbar */
+.skip-link {
+	position: absolute;
+	left: -9999px;
+	top: 1rem;
+}
+
+.skip-link:focus {
+	left: 1rem;
+	z-index: 60;
+	padding: 0.5rem 1rem;
+	border-radius: 0.25rem;
+	background: #fff;
+	color: var(--color-brand);
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+.site-header {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 50;
+	background: var(--color-mint);
+	color: var(--color-brand);
+	box-shadow: var(--shadow-lg);
+}
+
+/* Unterhalb der WordPress-Admin-Leiste (nur für eingeloggte Benutzer) */
+body.admin-bar .site-header {
+	top: 32px;
+}
+
+@media (max-width: 782px) {
+	body.admin-bar .site-header {
+		top: 46px;
+	}
+}
+
+/* Logo links, Hamburger rechts. Das Menü selbst ist absolut positioniert
+   und damit kein drittes Element in dieser Zeile.
+   Ohne max-width des .container: Logo und Hamburger halten auf jeder Breite
+   denselben Randabstand wie auf dem Smartphone (padding-inline: 1.5rem). */
+.site-header__inner {
+	position: relative; /* Bezugspunkt für das ausklappende Menü */
+	max-width: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: var(--header-height);
+}
+
+/* Logo + Vereinsname */
+.site-brand {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	color: inherit;
+	text-decoration: none;
+}
+
+.site-brand__mark {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 3rem;
+	height: 3rem;
+	border-radius: 9999px;
+	background: var(--color-brand);
+}
+
+.site-brand__mark svg {
+	width: 1.75rem;
+	height: 1.75rem;
+	color: #fff;
+}
+
+.site-brand__logo {
+	height: 3rem;
+	width: auto;
+}
+
+.site-brand__name {
+	font-size: 1.25rem; /* 20 px */
+	line-height: 1.5625rem; /* 25 px */
+	font-weight: 600;
+}
+
+/* Hamburger-Button (auf allen Bildschirmbreiten sichtbar) */
+.nav-toggle {
+	padding: 0.5rem;
+	border: 0;
+	border-radius: 0.25rem;
+	background: none;
+	color: inherit;
+	line-height: 0;
+	cursor: pointer;
+}
+
+.nav-toggle svg {
+	width: 2rem;
+	height: 2rem;
+}
+
+/* Hamburger im geschlossenen, X im geöffneten Zustand */
+.nav-toggle[aria-expanded="true"] .nav-toggle__icon--open,
+.nav-toggle[aria-expanded="false"] .nav-toggle__icon--close {
+	display: none;
+}
+
+/* ==========================================================================
+   Hauptmenü
+   Klappt unter dem Header als weiße Karte auf: auf dem Smartphone über die
+   volle Breite, ab 768 px über die rechte Bildschirmhälfte
+   (jeweils 1rem Abstand zu den Bildschirmrändern).
+   ========================================================================== */
+.main-nav {
+	display: none;
+	position: absolute;
+	top: calc(100% + 0.5rem);
+	left: 1rem;
+	right: 1rem;
+	max-height: calc(100vh - var(--header-height) - 1.5rem);
+	overflow-y: auto;
+	padding: 1rem 0.75rem;
+	border-radius: 1rem;
+	background: #fff;
+	box-shadow: var(--shadow-xl);
+}
+
+@media (min-width: 768px) {
+	.main-nav {
+		left: 50%;
+	}
+}
+
+body.admin-bar .main-nav {
+	max-height: calc(100vh - var(--header-height) - 1.5rem - 32px);
+}
+
+.main-nav.is-open {
+	display: block;
+}
+
+.main-nav ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.main-nav a {
+	display: block;
+	padding: 0.75rem 1rem;
+	border-radius: 0.5rem;
+	color: inherit;
+	font-size: 1.125rem;
+	line-height: 1.75rem;
+	font-weight: 600;
+	text-decoration: none;
+	transition: background-color 0.15s;
+}
+
+.main-nav a:hover {
+	background: var(--color-mint);
+}
+
+/* Menüpunkte mit Untermenü (z. B. "Informationsmaterial") werden durch
+   Trennlinien vom Rest abgesetzt. */
+.main-nav .menu-item-has-children,
+.main-nav .menu-item-has-children + li {
+	margin-top: 0.5rem;
+	padding-top: 0.5rem;
+	border-top: 1px solid #e5e7eb;
+}
+
+/* Untermenü: eingerückt und etwas kleiner */
+.main-nav .sub-menu {
+	padding: 0 0 0.5rem 1rem;
+}
+
+.main-nav .sub-menu a {
+	padding-block: 0.5rem;
+	font-size: 1rem;
+	line-height: 1.5rem;
+}
+
+/* ==========================================================================
+   Bilderrotation (template-parts/hero.php, slider.js)
+   Füllt den Bildschirm unter dem Header. Die Bilder liegen übereinander und
+   werden über die Klasse .is-active ein- und ausgeblendet.
+   ========================================================================== */
+.hero {
+	position: relative;
+	height: calc(96vh - var(--header-height));
+	min-height: 28rem;
+	overflow: hidden;
+	background: var(--color-brand); /* sichtbar, solange noch kein Bild hinterlegt ist */
+	color: #fff;
+}
+
+.hero__slide {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	transition: opacity 1s ease-in-out;
+}
+
+.hero__slide.is-active {
+	opacity: 1;
+}
+
+.hero__image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* Dunkle Ebene über den Bildern, damit der Text lesbar bleibt */
+.hero__slides::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: rgb(0 0 0 / 0.5);
+}
+
+.hero__content {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	text-align: center;
+}
+
+.hero__title {
+	margin: 0 0 1.5rem;
+	font-size: clamp(1.875rem, 4vw + 0.75rem, 3.75rem);
+	line-height: 1.15;
+	font-weight: 700;
+}
+
+.hero__text {
+	max-width: 40rem;
+	margin: 0;
+	font-size: 1.125rem;
+	line-height: 1.6;
+	opacity: 0.9;
+}
+
+@media (min-width: 768px) {
+	.hero__text {
+		font-size: 1.25rem;
+	}
+}
+
+/* Pfeile links und rechts – auf dem Smartphone wird stattdessen gewischt */
+.hero__arrow {
+	position: absolute;
+	top: 50%;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 3rem;
+	height: 3rem;
+	padding: 0;
+	border: 0;
+	border-radius: 9999px;
+	background: rgb(255 255 255 / 0.2);
+	color: #fff;
+	cursor: pointer;
+	transform: translateY(-50%);
+	transition: background-color 0.15s;
+}
+
+.hero__arrow:hover {
+	background: rgb(255 255 255 / 0.3);
+}
+
+.hero__arrow svg {
+	width: 1.5rem;
+	height: 1.5rem;
+}
+
+.hero__arrow--prev {
+	left: 1rem;
+}
+
+.hero__arrow--next {
+	right: 1rem;
+}
+
+@media (min-width: 768px) {
+	.hero__arrow {
+		display: flex;
+	}
+}
+
+/* Punkte unten: der aktive Punkt wird zum Balken */
+.hero__dots {
+	position: absolute;
+	bottom: 1.5rem;
+	left: 50%;
+	display: flex;
+	gap: 0.5rem;
+	transform: translateX(-50%);
+}
+
+.hero__dot {
+	width: 0.625rem;
+	height: 0.625rem;
+	padding: 0;
+	border: 0;
+	border-radius: 9999px;
+	background: rgb(255 255 255 / 0.5);
+	cursor: pointer;
+	transition: width 0.3s, background-color 0.3s;
+}
+
+.hero__dot[aria-current="true"] {
+	width: 2rem;
+	background: #fff;
+}
+
+/* ==========================================================================
+   Beiträge auf der Startseite (index.php)
+   Jeder Beitrag ist ein Abschnitt über die volle Breite; die Hintergrundfarbe
+   wechselt ab: 1. weiß, 2. mint, 3. weiß usw. Im Beitrag kann über das
+   ACF-Feld "Hintergrundfarbe" eine feste Farbe gewählt werden (.entry--…).
+   ========================================================================== */
+.entry {
+	padding-block: 4rem;
+	background: #fff;
+}
+
+.entry:nth-of-type(even) {
+	background: var(--color-mint);
+}
+
+.entry.entry--white {
+	background: #fff;
+}
+
+.entry.entry--mint {
+	background: var(--color-mint);
+}
+
+.entry.entry--cream {
+	background: var(--color-cream);
+}
+
+.entry.entry--sand {
+	background: var(--color-sand);
+}
+
+@media (min-width: 768px) {
+	.entry {
+		padding-block: 5rem;
+	}
+}
+
+/* Lesbare Zeilenlänge statt der vollen Containerbreite */
+.entry__inner {
+	max-width: 56rem;
+}
+
+/* Breiter Inhalt (80rem): Beiträge mit Tierarten (Bild + Text nebeneinander)
+   und Beiträge mit ACF-Feld "Inhaltsbreite: Volle Breite" */
+.entry__inner:has(.is-style-tierart),
+.entry--breit .entry__inner {
+	max-width: 80rem;
+}
+
+.entry__title {
+	margin: 0 0 2.5rem;
+	font-size: 2.25rem;
+	line-height: 1.2;
+	font-weight: 700;
+	text-align: center;
+	color: var(--color-brand);
+}
+
+@media (min-width: 768px) {
+	.entry__title {
+		margin-bottom: 3.5rem;
+		font-size: 3rem;
+	}
+}
+
+.entry__content {
+	font-size: 1.125rem; /* 18 px */
+	line-height: 1.75rem; /* 28 px */
+}
+
+.entry__content > * {
+	margin-block: 0 1.5rem;
+}
+
+.entry__content > :last-child {
+	margin-bottom: 0;
+}
+
+/* Überschriften im Beitrag. :where() hält die Spezifität niedrig, damit
+   Karten, Infoboxen usw. (blocks.css) eigene Größen setzen können. */
+.entry__content :where(h2, h3, h4) {
+	line-height: 1.25;
+	font-weight: 700;
+	color: var(--color-brand);
+}
+
+.entry__content :where(h3) {
+	font-size: 1.875rem;
+}
+
+.entry__content :where(h4) {
+	font-size: 1.5rem;
+}
+/* ==========================================================================
+   Footer (footer.php)
+   ========================================================================== */
+.site-footer {
+	padding-block: 2.5rem;
+	border-top: 2px solid var(--color-brand);
+	background: var(--color-mint);
+	color: var(--color-brand);
+	text-align: center;
+}
+
+.site-footer :where(p) {
+	margin: 0;
+}
+
+.site-footer__copyright {
+	font-size: 1.125rem;
+	line-height: 1.75rem;
+}
+
+.site-footer__tagline {
+	margin-top: 0.5rem;
+	font-size: 1rem;
+	line-height: 1.5rem;
+	opacity: 0.8;
+}
+
+/* Menü "Footer" – erscheint nur, wenn ihm unter Design → Menüs ein Menü zugewiesen ist */
+.site-footer__nav ul {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.5rem 1.5rem;
+	margin: 1rem 0 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.875rem;
+}
+
+.site-footer__nav a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.site-footer__nav a:hover {
+	text-decoration: underline;
+}
