@@ -249,14 +249,30 @@ add_action('init', function () {
 });
 
 /**
- * ACF: Darstellung des Beitrags-Abschnitts auf der Startseite (Seitenleiste im
- * Beitrag): Hintergrundfarbe ("Automatisch" = abwechselnd weiß/mint) und
+ * CSS-Klassen eines Inhalts-Abschnitts (index.php, page.php) aus den ACF-Feldern
+ * "Hintergrundfarbe" und "Inhaltsbreite".
+ */
+function wildtierhilfe_entry_classes()
+{
+	$background = function_exists('get_field') ? get_field('hintergrund') : '';
+	$width      = function_exists('get_field') ? get_field('inhaltsbreite') : '';
+
+	$classes = 'entry';
+	$classes .= $background && $background !== 'auto' ? ' entry--' . $background : '';
+	$classes .= $width === 'voll' ? ' entry--breit' : '';
+
+	return $classes;
+}
+
+/**
+ * ACF: Darstellung von Beiträgen und Seiten (Seitenleiste im Editor):
+ * Hintergrundfarbe ("Automatisch" = abwechselnd weiß/mint) und
  * Inhaltsbreite (Lesebreite 56rem oder volle Breite).
  */
 add_action('acf/init', function () {
 	acf_add_local_field_group([
 		'key'      => 'group_wildtierhilfe_beitrag',
-		'title'    => __('Darstellung auf der Startseite', 'wildtierhilfe'),
+		'title'    => __('Darstellung', 'wildtierhilfe'),
 		'fields'   => [
 			[
 				'key'           => 'field_wildtierhilfe_hintergrund',
@@ -289,6 +305,9 @@ add_action('acf/init', function () {
 		'location' => [
 			[
 				['param' => 'post_type', 'operator' => '==', 'value' => 'post'],
+			],
+			[
+				['param' => 'post_type', 'operator' => '==', 'value' => 'page'],
 			],
 		],
 		'position' => 'side',
