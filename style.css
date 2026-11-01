@@ -58,7 +58,11 @@ html {
 	}
 }
 
+/* Flex-Spalte: main füllt den freien Platz, der Footer sitzt so auch bei wenig
+   Inhalt am unteren Bildschirmrand. */
 body {
+	display: flex;
+	flex-direction: column;
 	min-height: 100vh;
 	margin: 0;
 	padding-top: var(--header-height); /* Platz für den fixen Header */
@@ -560,6 +564,21 @@ body.admin-bar .main-nav {
 /* ==========================================================================
    Footer (footer.php)
    ========================================================================== */
+main {
+	flex: 1 0 auto;
+}
+
+/* Die Admin-Leiste (nur eingeloggt) verschiebt die Seite um ihre eigene Höhe */
+body.admin-bar {
+	min-height: calc(100vh - 32px);
+}
+
+@media (max-width: 782px) {
+	body.admin-bar {
+		min-height: calc(100vh - 46px);
+	}
+}
+
 .site-footer {
 	padding-block: 2.5rem;
 	border-top: 2px solid var(--color-brand);
