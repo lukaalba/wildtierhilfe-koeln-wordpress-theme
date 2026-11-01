@@ -1,3 +1,22 @@
+// Eingeloggt auf dem Smartphone: Die Admin-Leiste scrollt mit der Seite weg.
+// Der sichtbare Rest ihrer Höhe bestimmt, wie weit der Header nach unten rückt.
+document.addEventListener('DOMContentLoaded', function () {
+	var adminBar = document.getElementById('wpadminbar');
+
+	if (!adminBar) {
+		return;
+	}
+
+	function update() {
+		var offset = Math.max(0, adminBar.getBoundingClientRect().bottom);
+		document.documentElement.style.setProperty('--admin-bar-offset', offset + 'px');
+	}
+
+	window.addEventListener('scroll', update, { passive: true });
+	window.addEventListener('resize', update);
+	update();
+});
+
 // Startseite: Header transparent, solange das Karussell hinter ihm zu sehen ist;
 // sobald es nach oben aus dem Bild gescrollt ist, normaler Header.
 document.addEventListener('DOMContentLoaded', function () {

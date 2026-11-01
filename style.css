@@ -182,6 +182,13 @@ body.admin-bar .site-header {
 	}
 }
 
+/* Bis 600 px scrollt die Admin-Leiste mit der Seite weg; der Header rückt nach (nav.js) */
+@media (max-width: 600px) {
+	body.admin-bar .site-header {
+		top: var(--admin-bar-offset, 46px);
+	}
+}
+
 /* Logo links, Hamburger rechts. Das Menü selbst ist absolut positioniert
    und damit kein drittes Element in dieser Zeile.
    Ohne max-width des .container: Logo und Hamburger halten auf jeder Breite
@@ -337,11 +344,25 @@ body.admin-bar .main-nav {
    ========================================================================== */
 .hero {
 	position: relative;
-	height: 96vh; /* inkl. des Headers, der über dem Karussell liegt */
-	min-height: 28rem;
+	height: 100vh; /* für Browser ohne svh */
+	height: 100svh; /* sichtbarer Bereich bei eingeblendeter Browserleiste, inkl. des Headers */
+	min-height: 20rem;
 	overflow: hidden;
 	background: var(--color-brand); /* sichtbar, solange noch kein Bild hinterlegt ist */
 	color: #fff;
+}
+
+/* Die Admin-Leiste (nur eingeloggt) schiebt das Karussell um ihre eigene Höhe nach unten */
+body.admin-bar .hero {
+	height: calc(100vh - 32px);
+	height: calc(100svh - 32px);
+}
+
+@media (max-width: 782px) {
+	body.admin-bar .hero {
+		height: calc(100vh - 46px);
+		height: calc(100svh - 46px);
+	}
 }
 
 .hero__slide {
