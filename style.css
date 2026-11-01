@@ -554,8 +554,12 @@ body.admin-bar .main-nav {
 	color: var(--color-brand);
 }
 
+.entry__content :where(h2) {
+	font-size: 1.875rem; /* 30 px */
+}
+
 .entry__content :where(h3) {
-	font-size: 1.875rem;
+	font-size: 1.6875rem; /* 27 px */
 }
 
 .entry__content :where(h4) {
