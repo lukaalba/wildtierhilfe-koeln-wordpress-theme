@@ -94,6 +94,37 @@ add_action('customize_register', function ($wp_customize) {
 		'section' => 'wildtierhilfe_hero',
 		'type'    => 'textarea',
 	]);
+
+	// PDF-Formulare: Links auf "?mitgliedsantrag" führen zur hier gewählten Datei
+	$wp_customize->add_section('wildtierhilfe_formulare', [
+		'title'    => __('Formulare (PDF)', 'wildtierhilfe'),
+		'priority' => 31,
+	]);
+
+	$wp_customize->add_setting('mitgliedsantrag_pdf', [
+		'sanitize_callback' => 'absint',
+	]);
+	$wp_customize->add_control(new WP_Customize_Media_Control($wp_customize, 'mitgliedsantrag_pdf', [
+		'label'       => __('Mitgliedsantrag', 'wildtierhilfe'),
+		'description' => __('Link für Buttons: ?mitgliedsantrag', 'wildtierhilfe'),
+		'section'     => 'wildtierhilfe_formulare',
+		'mime_type'   => 'application/pdf',
+	]));
+});
+
+/**
+ * Feste Adresse für den Mitgliedsantrag: "?mitgliedsantrag" leitet zur im
+ * Customizer gewählten PDF weiter. So bleibt der Link im Button gleich, auch
+ * wenn die PDF ausgetauscht wird.
+ */
+add_action('template_redirect', function () {
+	if (!isset($_GET['mitgliedsantrag'])) {
+		return;
+	}
+
+	$url = wp_get_attachment_url((int) get_theme_mod('mitgliedsantrag_pdf'));
+	wp_safe_redirect($url ?: home_url('/'), 302);
+	exit;
 });
 
 function wildtierhilfe_hero_text_default()
@@ -212,6 +243,31 @@ add_action('init', function () {
 <div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="#kontakt">' . esc_html__('Jetzt Kontakt aufnehmen', 'wildtierhilfe') . '</a></div>
 <!-- /wp:button --></div>
 <!-- /wp:buttons --></div>
+<!-- /wp:group -->',
+	]);
+
+	// Tab: Gruppen mit Stil "Tab" direkt hintereinander werden auf der Website
+	// zu Tabs (tabs.js), im Editor stehen sie untereinander. Tab-Text: Seitenleiste
+	// → "Tab-Beschriftung" (editor.js). Darin sind alle Blöcke erlaubt, auch Karten.
+	register_block_style('core/group', [
+		'name'         => 'tab',
+		'label'        => __('Tab', 'wildtierhilfe'),
+		'style_handle' => 'wildtierhilfe-blocks',
+	]);
+
+	register_block_pattern('wildtierhilfe/tabs', [
+		'title'      => __('Tabs', 'wildtierhilfe'),
+		'categories' => ['text'],
+		'content'    => '<!-- wp:group {"className":"is-style-tab","tabLabel":"' . esc_attr__('Tab 1', 'wildtierhilfe') . '"} -->
+<div class="wp-block-group is-style-tab"><!-- wp:paragraph -->
+<p>' . esc_html__('Inhalt des ersten Tabs.', 'wildtierhilfe') . '</p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:group -->
+
+<!-- wp:group {"className":"is-style-tab","tabLabel":"' . esc_attr__('Tab 2', 'wildtierhilfe') . '"} -->
+<div class="wp-block-group is-style-tab"><!-- wp:paragraph -->
+<p>' . esc_html__('Inhalt des zweiten Tabs.', 'wildtierhilfe') . '</p>
+<!-- /wp:paragraph --></div>
 <!-- /wp:group -->',
 	]);
 
@@ -373,20 +429,28 @@ add_action('enqueue_block_editor_assets', function () {
 });
 
 /**
- * Tierart-Block erkennen ("Medien und Text" mit Stil "Tierart").
+ * Tab-Block erkennen: Tierart ("Medien und Text" mit Stil "Tierart") oder
+ * Gruppe mit Stil "Tab".
  */
-function wildtierhilfe_is_tierart($block)
+function wildtierhilfe_is_tab($block)
 {
-	return ($block['blockName'] ?? '') === 'core/media-text'
-		&& str_contains($block['attrs']['className'] ?? '', 'is-style-tierart');
+	$styles = [
+		'core/media-text' => 'is-style-tierart',
+		'core/group'      => 'is-style-tab',
+	];
+	$name = $block['blockName'] ?? '';
+
+	return isset($styles[$name])
+		&& str_contains($block['attrs']['className'] ?? '', $styles[$name]);
 }
 
 /**
- * Tab-Text und Anker einer Tierart. Tab-Text: "Tab-Beschriftung" aus dem
- * Editor (editor.js), sonst die erste Überschrift. Anker: "HTML-Anker" aus dem
- * Editor, sonst aus dem Tab-Text gebildet (z. B. "Eichhörnchen" → "eichhoernchen").
+ * Tab-Text und Anker eines Tabs (Tierart oder Gruppe mit Stil "Tab"). Tab-Text:
+ * "Tab-Beschriftung" aus dem Editor (editor.js), sonst die erste Überschrift.
+ * Anker: "HTML-Anker" aus dem Editor, sonst aus dem Tab-Text gebildet
+ * (z. B. "Eichhörnchen" → "eichhoernchen").
  */
-function wildtierhilfe_tierart_tab($block)
+function wildtierhilfe_tab($block)
 {
 	$label = trim($block['attrs']['tabLabel'] ?? '');
 
@@ -408,15 +472,18 @@ function wildtierhilfe_tierart_tab($block)
 }
 
 /**
- * Alle Tierarten eines Beitrags (auch in verschachtelten Blöcken).
+ * Alle Tabs eines Beitrags (auch in verschachtelten Blöcken).
  */
-function wildtierhilfe_tierart_tabs($post)
+function wildtierhilfe_post_tabs($post)
 {
 	$tabs = [];
 	$walk = function ($blocks) use (&$walk, &$tabs) {
 		foreach ($blocks as $block) {
-			if (wildtierhilfe_is_tierart($block)) {
-				$tabs[] = wildtierhilfe_tierart_tab($block);
+			if (wildtierhilfe_is_tab($block)) {
+				$tab = wildtierhilfe_tab($block);
+				if ($tab['label'] !== '') {
+					$tabs[] = $tab;
+				}
 			}
 			$walk($block['innerBlocks']);
 		}
@@ -427,15 +494,16 @@ function wildtierhilfe_tierart_tabs($post)
 }
 
 /**
- * Tierart-Tabs: Tab-Text als data-tab-label und Anker als id ausgeben,
- * tabs.js liest beides aus. Über den Anker (z. B. "#igel") öffnet sich der Tab.
+ * Tabs (Tierarten und Gruppen mit Stil "Tab"): Tab-Text als data-tab-label und
+ * Anker als id ausgeben, tabs.js liest beides aus. Über den Anker (z. B. "#igel")
+ * öffnet sich der Tab.
  */
-add_filter('render_block_core/media-text', function ($content, $block) {
-	if (!wildtierhilfe_is_tierart($block)) {
+$wildtierhilfe_tab_attributes = function ($content, $block) {
+	if (!wildtierhilfe_is_tab($block)) {
 		return $content;
 	}
 
-	$tab = wildtierhilfe_tierart_tab($block);
+	$tab = wildtierhilfe_tab($block);
 	$tags = new WP_HTML_Tag_Processor($content);
 	if ($tags->next_tag()) {
 		if ($tab['label'] !== '') {
@@ -446,13 +514,15 @@ add_filter('render_block_core/media-text', function ($content, $block) {
 		}
 	}
 	return $tags->get_updated_html();
-}, 10, 2);
+};
+add_filter('render_block_core/media-text', $wildtierhilfe_tab_attributes, 10, 2);
+add_filter('render_block_core/group', $wildtierhilfe_tab_attributes, 10, 2);
 
 /**
- * Hauptmenü: Verweist ein Menüpunkt auf einen Beitrag mit Tierarten (z. B.
- * "Tiere"), bekommt er jede Tierart als Unterpunkt. Neue Tierarten erscheinen
- * so automatisch im Menü. Hat der Menüpunkt schon eigene Unterpunkte, bleibt er
- * unverändert.
+ * Hauptmenü: Verweist ein Menüpunkt auf einen Beitrag mit Tabs (z. B. "Tiere"
+ * mit den Tierarten, "Helfen" mit Ehrenamt und Spende), bekommt er jeden Tab als
+ * Unterpunkt. Neue Tabs erscheinen so automatisch im Menü. Hat der Menüpunkt
+ * schon eigene Unterpunkte, bleibt er unverändert.
  */
 add_filter('wp_nav_menu_objects', function ($items, $args) {
 	if (($args->theme_location ?? '') !== 'primary') {
@@ -471,7 +541,7 @@ add_filter('wp_nav_menu_objects', function ($items, $args) {
 			continue;
 		}
 
-		$tabs = wildtierhilfe_tierart_tabs($item->object_id);
+		$tabs = wildtierhilfe_post_tabs($item->object_id);
 		if (!$tabs) {
 			continue;
 		}
@@ -480,7 +550,7 @@ add_filter('wp_nav_menu_objects', function ($items, $args) {
 
 		foreach ($tabs as $index => $tab) {
 			// Ausgedachte, eindeutige ID: Diese Unterpunkte stehen nicht in der Datenbank
-			$id = 'tierart-' . $item->db_id . '-' . ($index + 1);
+			$id = 'tab-' . $item->db_id . '-' . ($index + 1);
 
 			$result[] = (object) [
 				'ID'               => $id,
@@ -495,7 +565,7 @@ add_filter('wp_nav_menu_objects', function ($items, $args) {
 				'attr_title'       => '',
 				'description'      => '',
 				'xfn'              => '',
-				'classes'          => ['menu-item', 'menu-item-tierart'],
+				'classes'          => ['menu-item', 'menu-item-tab'],
 				'current'          => false,
 			];
 		}

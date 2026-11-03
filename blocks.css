@@ -126,11 +126,11 @@
 	}
 }
 
-/* Tierart-Tabs (tabs.js): Mehrere Tierart-Blöcke direkt hintereinander werden
-   zu Tabs, es ist immer nur einer sichtbar. Die Tab-Leiste ist so breit wie der
+/* Tabs (tabs.js): Mehrere Tierart-Blöcke bzw. Gruppen mit Stil "Tab" direkt
+   hintereinander werden zu Tabs, es ist immer nur einer sichtbar. Die Tab-Leiste ist so breit wie der
    Block darunter, alle Tabs sind gleich breit (mindestens 10rem); passen sie
    nicht hinein, scrollt die Leiste seitlich. */
-.tierart-tabs__list {
+.tabs__list {
 	display: grid;
 	grid-auto-flow: column;
 	grid-auto-columns: minmax(10rem, 1fr);
@@ -145,11 +145,11 @@
 	box-shadow: inset 0 0 0 1px rgb(36 91 56 / 0.06); /* Kontur auf weißem Hintergrund */
 }
 
-.tierart-tabs__list::-webkit-scrollbar {
+.tabs__list::-webkit-scrollbar {
 	display: none;
 }
 
-.tierart-tabs__tab {
+.tabs__tab {
 	padding: 0.75rem 1rem;
 	border: 0;
 	border-radius: 0.75rem;
@@ -164,36 +164,47 @@
 	transition: background-color 0.15s, color 0.15s;
 }
 
-.tierart-tabs__tab:hover {
+.tabs__tab:hover {
 	background: rgb(36 91 56 / 0.08);
 }
 
-.tierart-tabs__tab[aria-selected="true"] {
+.tabs__tab[aria-selected="true"] {
 	background: #245b38;
 	color: #fff;
 }
 
-.tierart-tabs__tab:focus-visible {
+.tabs__tab:focus-visible {
 	outline: 2px solid #245b38;
 	outline-offset: 2px;
 }
 
-.tierart-tabs > [hidden] {
+.tabs > [hidden] {
 	display: none;
 }
 
+/* Im Editor stehen die Tabs untereinander; die gestrichelte Linie zeigt, wo ein Tab endet */
+.is-root-container .wp-block-group.is-style-tab {
+	padding: 1rem;
+	border: 2px dashed rgb(36 91 56 / 0.3);
+	border-radius: 0.75rem;
+}
+
+.is-root-container .wp-block-group.is-style-tab + .wp-block-group.is-style-tab {
+	margin-top: 1.5rem;
+}
+
 /* Ausgeblendete Tierarten zählen nicht als Abstand */
-.tierart-tabs > .wp-block-media-text.is-style-tierart + .wp-block-media-text.is-style-tierart {
+.tabs > .wp-block-media-text.is-style-tierart + .wp-block-media-text.is-style-tierart {
 	margin-top: 0;
 }
 
 /* In den Tabs immer Text links, Bild rechts – sonst springt das Bild beim Wechseln */
 @media (min-width: 768px) {
-	.tierart-tabs > .wp-block-media-text.is-style-tierart:nth-child(n of .is-style-tierart) > .wp-block-media-text__content {
+	.tabs > .wp-block-media-text.is-style-tierart:nth-child(n of .is-style-tierart) > .wp-block-media-text__content {
 		grid-column: 1;
 	}
 
-	.tierart-tabs > .wp-block-media-text.is-style-tierart:nth-child(n of .is-style-tierart) > .wp-block-media-text__media {
+	.tabs > .wp-block-media-text.is-style-tierart:nth-child(n of .is-style-tierart) > .wp-block-media-text__media {
 		grid-column: 2;
 	}
 }
@@ -388,35 +399,37 @@
    Raster mit zwei Spalten (Smartphone: eine). Aufeinanderfolgende Karten stehen
    paarweise nebeneinander und gleich hoch, alle anderen Blöcke nutzen die volle
    Breite. Die Abstände kommen dann aus "gap" statt aus den Außenabständen.
-   .entry__content = Frontend (index.php), .is-root-container = Block-Editor. */
-:is(.entry__content, .is-root-container):has(> .is-style-karte) {
+   .entry__content = Frontend (index.php), .is-root-container = Block-Editor,
+   .is-style-tab = Karten innerhalb eines Tabs (auf der Website mit innerem
+   Container .wp-block-group__inner-container, im Editor ohne). */
+:is(.entry__content, .is-root-container, .wp-block-group.is-style-tab, .is-style-tab > .wp-block-group__inner-container):has(> .is-style-karte) {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
 	gap: 1.5rem 2rem;
 }
 
 @media (min-width: 640px) {
-	:is(.entry__content, .is-root-container):has(> .is-style-karte) {
+	:is(.entry__content, .is-root-container, .wp-block-group.is-style-tab, .is-style-tab > .wp-block-group__inner-container):has(> .is-style-karte) {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 
-:is(.entry__content, .is-root-container):has(> .is-style-karte) > * {
+:is(.entry__content, .is-root-container, .wp-block-group.is-style-tab, .is-style-tab > .wp-block-group__inner-container):has(> .is-style-karte) > * {
 	grid-column: 1 / -1;
 	margin: 0;
 }
 
-:is(.entry__content, .is-root-container):has(> .is-style-karte) > .is-style-karte {
+:is(.entry__content, .is-root-container, .wp-block-group.is-style-tab, .is-style-tab > .wp-block-group__inner-container):has(> .is-style-karte) > .is-style-karte {
 	grid-column: auto;
 }
 
 /* Schalter "Volle Breite" im Editor */
-:is(.entry__content, .is-root-container):has(> .is-style-karte) > .is-style-karte.is-karte-breit {
+:is(.entry__content, .is-root-container, .wp-block-group.is-style-tab, .is-style-tab > .wp-block-group__inner-container):has(> .is-style-karte) > .is-style-karte.is-karte-breit {
 	grid-column: 1 / -1;
 }
 
 /* Hervorgehobene Boxen und der Block nach den Karten bekommen mehr Luft */
-:is(.entry__content, .is-root-container):has(> .is-style-karte) > :is(.is-style-infobox, .is-style-aufruf),
-:is(.entry__content, .is-root-container):has(> .is-style-karte) > .is-style-karte + :not(.is-style-karte) {
+:is(.entry__content, .is-root-container, .wp-block-group.is-style-tab, .is-style-tab > .wp-block-group__inner-container):has(> .is-style-karte) > :is(.is-style-infobox, .is-style-aufruf),
+:is(.entry__content, .is-root-container, .wp-block-group.is-style-tab, .is-style-tab > .wp-block-group__inner-container):has(> .is-style-karte) > .is-style-karte + :not(.is-style-karte) {
 	margin-top: 1.5rem;
 }

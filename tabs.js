@@ -1,57 +1,62 @@
-// Tierart-Blöcke als Tabs: Direkt aufeinanderfolgende Blöcke mit Stil "Tierart"
+// Tabs: Direkt aufeinanderfolgende Tierart-Blöcke bzw. Gruppen mit Stil "Tab"
 // werden zusammengefasst. Tab-Text: "Tab-Beschriftung" aus dem Editor, sonst die
 // Überschrift des Blocks.
 // Ohne JavaScript (und im Editor) stehen die Blöcke wie bisher untereinander.
 document.addEventListener('DOMContentLoaded', function () {
-	var selector = '.wp-block-media-text.is-style-tierart';
+	var arten = [
+		{ selector: '.wp-block-media-text.is-style-tierart', label: 'Tierarten' },
+		{ selector: '.wp-block-group.is-style-tab', label: 'Bereiche' },
+	];
 	var groupCount = 0;
 	var groups = [];
 
-	document.querySelectorAll(selector).forEach(function (block) {
-		// Nur beim ersten Block einer Gruppe starten
-		var previous = block.previousElementSibling;
-		if (previous && previous.matches(selector)) {
-			return;
-		}
+	arten.forEach(function (art) {
+		document.querySelectorAll(art.selector).forEach(function (block) {
+			// Nur beim ersten Block einer Gruppe starten
+			var previous = block.previousElementSibling;
+			if (previous && previous.matches(art.selector)) {
+				return;
+			}
 
-		var panels = [block];
-		var next = block.nextElementSibling;
-		while (next && next.matches(selector)) {
-			panels.push(next);
-			next = next.nextElementSibling;
-		}
+			var panels = [block];
+			var next = block.nextElementSibling;
+			while (next && next.matches(art.selector)) {
+				panels.push(next);
+				next = next.nextElementSibling;
+			}
 
-		if (panels.length < 2) {
-			return;
-		}
+			if (panels.length < 2) {
+				return;
+			}
 
-		groupCount++;
-		buildTabs(panels, 'tierart-' + groupCount);
+			groupCount++;
+			buildTabs(panels, 'tabs-' + groupCount, art.label);
+		});
 	});
 
-	function buildTabs(panels, prefix) {
+	function buildTabs(panels, prefix, label) {
 		var wrapper = document.createElement('div');
-		wrapper.className = 'tierart-tabs';
+		wrapper.className = 'tabs';
 
 		var list = document.createElement('div');
-		list.className = 'tierart-tabs__list';
+		list.className = 'tabs__list';
 		list.setAttribute('role', 'tablist');
-		list.setAttribute('aria-label', 'Tierarten');
+		list.setAttribute('aria-label', label);
 
 		panels[0].parentNode.insertBefore(wrapper, panels[0]);
 		wrapper.appendChild(list);
 
 		var tabs = panels.map(function (panel, index) {
-			var heading = panel.querySelector('.wp-block-media-text__content :is(h2, h3, h4)');
+			var heading = panel.querySelector('h2, h3, h4');
 			var tab = document.createElement('button');
 
 			tab.type = 'button';
-			tab.className = 'tierart-tabs__tab';
+			tab.className = 'tabs__tab';
 			tab.id = prefix + '-tab-' + (index + 1);
 			tab.setAttribute('role', 'tab');
 			// Beschriftung aus dem Editor, sonst die Überschrift des Blocks
 			tab.textContent = panel.dataset.tabLabel
-				|| (heading ? heading.textContent.trim() : 'Tierart ' + (index + 1));
+				|| (heading ? heading.textContent.trim() : 'Tab ' + (index + 1));
 
 			panel.id = panel.id || prefix + '-panel-' + (index + 1);
 			tab.setAttribute('aria-controls', panel.id);
@@ -81,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		groups.push({ panels: panels, show: show, wrapper: wrapper });
 
 		list.addEventListener('click', function (event) {
-			var tab = event.target.closest('.tierart-tabs__tab');
+			var tab = event.target.closest('.tabs__tab');
 			if (tab) {
 				show(tabs.indexOf(tab));
 			}
@@ -111,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		select(0);
 	}
 
-	// Anker einer Tierart (z. B. "#igel", Unterpunkte von "Tiere" im Menü):
+	// Anker eines Tabs (z. B. "#igel", Unterpunkte von "Tiere" im Menü):
 	// passenden Tab öffnen und zur Tab-Leiste scrollen.
 	function openFromHash(hash) {
 		var id = decodeURIComponent((hash || '').slice(1));
