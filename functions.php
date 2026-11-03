@@ -373,20 +373,135 @@ add_action('enqueue_block_editor_assets', function () {
 });
 
 /**
- * Tierart-Tabs: Die Tab-Beschriftung aus dem Editor (editor.js) als
- * data-tab-label ausgeben, tabs.js liest sie dort aus.
+ * Tierart-Block erkennen ("Medien und Text" mit Stil "Tierart").
+ */
+function wildtierhilfe_is_tierart($block)
+{
+	return ($block['blockName'] ?? '') === 'core/media-text'
+		&& str_contains($block['attrs']['className'] ?? '', 'is-style-tierart');
+}
+
+/**
+ * Tab-Text und Anker einer Tierart. Tab-Text: "Tab-Beschriftung" aus dem
+ * Editor (editor.js), sonst die erste Überschrift. Anker: "HTML-Anker" aus dem
+ * Editor, sonst aus dem Tab-Text gebildet (z. B. "Eichhörnchen" → "eichhoernchen").
+ */
+function wildtierhilfe_tierart_tab($block)
+{
+	$label = trim($block['attrs']['tabLabel'] ?? '');
+
+	if ($label === '') {
+		foreach ($block['innerBlocks'] as $inner) {
+			if ($inner['blockName'] === 'core/heading') {
+				$label = trim(wp_strip_all_tags($inner['innerHTML']));
+				break;
+			}
+		}
+	}
+
+	$anchor = $block['attrs']['anchor'] ?? '';
+
+	return [
+		'label'  => $label,
+		'anchor' => $anchor !== '' ? $anchor : sanitize_title($label),
+	];
+}
+
+/**
+ * Alle Tierarten eines Beitrags (auch in verschachtelten Blöcken).
+ */
+function wildtierhilfe_tierart_tabs($post)
+{
+	$tabs = [];
+	$walk = function ($blocks) use (&$walk, &$tabs) {
+		foreach ($blocks as $block) {
+			if (wildtierhilfe_is_tierart($block)) {
+				$tabs[] = wildtierhilfe_tierart_tab($block);
+			}
+			$walk($block['innerBlocks']);
+		}
+	};
+	$walk(parse_blocks(get_post_field('post_content', $post)));
+
+	return $tabs;
+}
+
+/**
+ * Tierart-Tabs: Tab-Text als data-tab-label und Anker als id ausgeben,
+ * tabs.js liest beides aus. Über den Anker (z. B. "#igel") öffnet sich der Tab.
  */
 add_filter('render_block_core/media-text', function ($content, $block) {
-	$label = trim($block['attrs']['tabLabel'] ?? '');
-	if ($label === '') {
+	if (!wildtierhilfe_is_tierart($block)) {
 		return $content;
 	}
 
+	$tab = wildtierhilfe_tierart_tab($block);
 	$tags = new WP_HTML_Tag_Processor($content);
 	if ($tags->next_tag()) {
-		$tags->set_attribute('data-tab-label', $label);
+		if ($tab['label'] !== '') {
+			$tags->set_attribute('data-tab-label', $tab['label']);
+		}
+		if ($tab['anchor'] !== '') {
+			$tags->set_attribute('id', $tab['anchor']);
+		}
 	}
 	return $tags->get_updated_html();
+}, 10, 2);
+
+/**
+ * Hauptmenü: Verweist ein Menüpunkt auf einen Beitrag mit Tierarten (z. B.
+ * "Tiere"), bekommt er jede Tierart als Unterpunkt. Neue Tierarten erscheinen
+ * so automatisch im Menü. Hat der Menüpunkt schon eigene Unterpunkte, bleibt er
+ * unverändert.
+ */
+add_filter('wp_nav_menu_objects', function ($items, $args) {
+	if (($args->theme_location ?? '') !== 'primary') {
+		return $items;
+	}
+
+	$parents = array_map(function ($item) {
+		return (int) $item->menu_item_parent;
+	}, $items);
+
+	$result = [];
+	foreach ($items as $item) {
+		$result[] = $item;
+
+		if ($item->object !== 'post' || in_array((int) $item->db_id, $parents, true)) {
+			continue;
+		}
+
+		$tabs = wildtierhilfe_tierart_tabs($item->object_id);
+		if (!$tabs) {
+			continue;
+		}
+
+		$item->classes[] = 'menu-item-has-children';
+
+		foreach ($tabs as $index => $tab) {
+			// Ausgedachte, eindeutige ID: Diese Unterpunkte stehen nicht in der Datenbank
+			$id = 'tierart-' . $item->db_id . '-' . ($index + 1);
+
+			$result[] = (object) [
+				'ID'               => $id,
+				'db_id'            => $id,
+				'menu_item_parent' => $item->db_id,
+				'object_id'        => 0,
+				'object'           => 'custom',
+				'type'             => 'custom',
+				'title'            => $tab['label'],
+				'url'              => home_url('/') . '#' . $tab['anchor'],
+				'target'           => '',
+				'attr_title'       => '',
+				'description'      => '',
+				'xfn'              => '',
+				'classes'          => ['menu-item', 'menu-item-tierart'],
+				'current'          => false,
+			];
+		}
+	}
+
+	return $result;
 }, 10, 2);
 
 /**

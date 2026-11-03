@@ -5,6 +5,7 @@
 document.addEventListener('DOMContentLoaded', function () {
 	var selector = '.wp-block-media-text.is-style-tierart';
 	var groupCount = 0;
+	var groups = [];
 
 	document.querySelectorAll(selector).forEach(function (block) {
 		// Nur beim ersten Block einer Gruppe starten
@@ -71,11 +72,13 @@ document.addEventListener('DOMContentLoaded', function () {
 			});
 		}
 
-		// Auf dem Smartphone scrollt die Tab-Leiste zum gewählten Tab
+		// Auf dem Smartphone scrollt die Tab-Leiste (nur seitlich) zum gewählten Tab
 		function show(index) {
 			select(index);
-			tabs[index].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+			list.scrollTo({ left: tabs[index].offsetLeft - (list.clientWidth - tabs[index].offsetWidth) / 2 });
 		}
+
+		groups.push({ panels: panels, show: show, wrapper: wrapper });
 
 		list.addEventListener('click', function (event) {
 			var tab = event.target.closest('.tierart-tabs__tab');
@@ -107,4 +110,41 @@ document.addEventListener('DOMContentLoaded', function () {
 		// Beim Laden ohne Scrollen: erster Tab aktiv
 		select(0);
 	}
+
+	// Anker einer Tierart (z. B. "#igel", Unterpunkte von "Tiere" im Menü):
+	// passenden Tab öffnen und zur Tab-Leiste scrollen.
+	function openFromHash(hash) {
+		var id = decodeURIComponent((hash || '').slice(1));
+
+		return id !== '' && groups.some(function (group) {
+			var index = group.panels.findIndex(function (panel) {
+				return panel.id === id;
+			});
+
+			if (index === -1) {
+				return false;
+			}
+
+			group.show(index);
+			group.wrapper.scrollIntoView({ block: 'start' });
+			return true;
+		});
+	}
+
+	document.addEventListener('click', function (event) {
+		var link = event.target.closest('a[href*="#"]');
+
+		if (link && link.host === location.host && link.pathname === location.pathname && openFromHash(link.hash)) {
+			event.preventDefault();
+			history.pushState(null, '', link.hash);
+		}
+	});
+
+	// Zurück-Taste des Browsers
+	window.addEventListener('hashchange', function () {
+		openFromHash(location.hash);
+	});
+
+	// Von einer anderen Seite kommend, z. B. Impressum → Menü → "Igel"
+	openFromHash(location.hash);
 });

@@ -134,6 +134,7 @@
 	display: grid;
 	grid-auto-flow: column;
 	grid-auto-columns: minmax(10rem, 1fr);
+	position: relative; /* Bezugspunkt für das seitliche Scrollen (tabs.js) */
 	gap: 0.25rem;
 	margin-bottom: 3rem;
 	padding: 0.5rem;
