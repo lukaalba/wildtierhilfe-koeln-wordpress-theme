@@ -30,7 +30,7 @@
 			<span class="site-brand__name"><?php echo esc_html(get_bloginfo('name')); ?></span>
 		</a>
 
-		<!-- Hamburger-Button (nur unterhalb von 1024 px sichtbar) -->
+		<!-- Hamburger-Button (ausgeblendet, wenn alle Menüpunkte in den Header passen – nav.js) -->
 		<button id="nav-toggle" class="nav-toggle" type="button"
 			aria-controls="primary-nav" aria-expanded="false"
 			aria-label="<?php esc_attr_e('Menü öffnen', 'wildtierhilfe'); ?>">

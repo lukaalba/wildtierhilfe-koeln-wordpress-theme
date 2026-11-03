@@ -126,6 +126,77 @@
 	}
 }
 
+/* Tierart-Tabs (tabs.js): Mehrere Tierart-Blöcke direkt hintereinander werden
+   zu Tabs, es ist immer nur einer sichtbar. Die Tab-Leiste ist so breit wie der
+   Block darunter, alle Tabs sind gleich breit (mindestens 10rem); passen sie
+   nicht hinein, scrollt die Leiste seitlich. */
+.tierart-tabs__list {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: minmax(10rem, 1fr);
+	gap: 0.25rem;
+	margin-bottom: 3rem;
+	padding: 0.5rem;
+	overflow-x: auto;
+	scrollbar-width: none;
+	border-radius: 1.25rem;
+	background: rgb(255 255 255 / 0.7);
+	box-shadow: inset 0 0 0 1px rgb(36 91 56 / 0.06); /* Kontur auf weißem Hintergrund */
+}
+
+.tierart-tabs__list::-webkit-scrollbar {
+	display: none;
+}
+
+.tierart-tabs__tab {
+	padding: 0.75rem 1rem;
+	border: 0;
+	border-radius: 0.75rem;
+	background: transparent;
+	color: #245b38;
+	font: inherit;
+	font-size: 1.125rem;
+	line-height: 1.5;
+	font-weight: 600;
+	text-align: center; /* längere Texte brechen um, statt den Tab zu verbreitern */
+	cursor: pointer;
+	transition: background-color 0.15s, color 0.15s;
+}
+
+.tierart-tabs__tab:hover {
+	background: rgb(36 91 56 / 0.08);
+}
+
+.tierart-tabs__tab[aria-selected="true"] {
+	background: #245b38;
+	color: #fff;
+}
+
+.tierart-tabs__tab:focus-visible {
+	outline: 2px solid #245b38;
+	outline-offset: 2px;
+}
+
+.tierart-tabs > [hidden] {
+	display: none;
+}
+
+/* Ausgeblendete Tierarten zählen nicht als Abstand */
+.tierart-tabs > .wp-block-media-text.is-style-tierart + .wp-block-media-text.is-style-tierart {
+	margin-top: 0;
+}
+
+/* In den Tabs immer Text links, Bild rechts – sonst springt das Bild beim Wechseln */
+@media (min-width: 768px) {
+	.tierart-tabs > .wp-block-media-text.is-style-tierart:nth-child(n of .is-style-tierart) > .wp-block-media-text__content {
+		grid-column: 1;
+	}
+
+	.tierart-tabs > .wp-block-media-text.is-style-tierart:nth-child(n of .is-style-tierart) > .wp-block-media-text__media {
+		grid-column: 2;
+	}
+}
+
 /* Karte: Gruppe mit Stil "Karte". Die Höhe ergibt sich aus dem Inhalt.
    Schalter im Editor (editor.js): "Volle Breite" → .is-karte-breit,
    "Schatten statt Rahmen" → .is-karte-schatten.

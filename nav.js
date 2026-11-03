@@ -54,6 +54,30 @@ document.addEventListener('DOMContentLoaded', function () {
 		toggle.setAttribute('aria-label', open ? 'Menü schließen' : 'Menü öffnen');
 	}
 
+	// Alle Menüpunkte ausschreiben, wenn sie neben das Logo passen – sonst alle
+	// im Hamburger-Menü. Gemessen wird mit ausgeschriebenem Menü.
+	var header = document.getElementById('site-header');
+	var inner = header && header.querySelector('.site-header__inner');
+
+	function updateLayout() {
+		header.classList.add('is-expanded');
+		var fits = inner.scrollWidth <= inner.clientWidth;
+		header.classList.toggle('is-expanded', fits);
+
+		if (fits && nav.classList.contains('is-open')) {
+			setOpen(false);
+		}
+	}
+
+	if (inner) {
+		updateLayout();
+		window.addEventListener('resize', updateLayout);
+		// Mit der Webschrift ändern sich die Textbreiten
+		if (document.fonts) {
+			document.fonts.ready.then(updateLayout);
+		}
+	}
+
 	toggle.addEventListener('click', function () {
 		setOpen(toggle.getAttribute('aria-expanded') !== 'true');
 	});

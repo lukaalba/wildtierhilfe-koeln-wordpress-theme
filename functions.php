@@ -373,6 +373,23 @@ add_action('enqueue_block_editor_assets', function () {
 });
 
 /**
+ * Tierart-Tabs: Die Tab-Beschriftung aus dem Editor (editor.js) als
+ * data-tab-label ausgeben, tabs.js liest sie dort aus.
+ */
+add_filter('render_block_core/media-text', function ($content, $block) {
+	$label = trim($block['attrs']['tabLabel'] ?? '');
+	if ($label === '') {
+		return $content;
+	}
+
+	$tags = new WP_HTML_Tag_Processor($content);
+	if ($tags->next_tag()) {
+		$tags->set_attribute('data-tab-label', $label);
+	}
+	return $tags->get_updated_html();
+}, 10, 2);
+
+/**
  * CSS und JavaScript einbinden.
  */
 add_action('wp_enqueue_scripts', function () {
@@ -388,6 +405,14 @@ add_action('wp_enqueue_scripts', function () {
 		get_theme_file_uri('nav.js'),
 		[],
 		wildtierhilfe_asset_version('nav.js'),
+		true
+	);
+
+	wp_enqueue_script(
+		'wildtierhilfe-tabs',
+		get_theme_file_uri('tabs.js'),
+		[],
+		wildtierhilfe_asset_version('tabs.js'),
 		true
 	);
 
