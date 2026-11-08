@@ -302,6 +302,88 @@ add_action('init', function () {
 <!-- /wp:paragraph --></div>
 <!-- /wp:group -->',
 	]);
+
+	// Popup: Gruppe mit Stil "Popup" und HTML-Anker (z. B. "spenden"). Auf der
+	// Website ist sie zunächst unsichtbar und öffnet sich als Fenster, sobald ein
+	// Link auf "#spenden" geklickt wird (popup.js). Im Editor steht sie als
+	// gestrichelte Box im Inhalt. Ein Bild darin (z. B. ein GiroCode) wird
+	// automatisch klein und zentriert angezeigt.
+	register_block_style('core/group', [
+		'name'         => 'popup',
+		'label'        => __('Popup', 'wildtierhilfe'),
+		'style_handle' => 'wildtierhilfe-blocks',
+	]);
+
+	// Bankangabe: erster Absatz = Bezeichnung, zweiter = Wert. Auf der Website
+	// kommt ein "Kopieren"-Knopf dazu (popup.js).
+	register_block_style('core/group', [
+		'name'         => 'bankangabe',
+		'label'        => __('Bankangabe', 'wildtierhilfe'),
+		'style_handle' => 'wildtierhilfe-blocks',
+	]);
+
+	$bankangabe = function ($label, $value) {
+		return '<!-- wp:group {"className":"is-style-bankangabe"} -->
+<div class="wp-block-group is-style-bankangabe"><!-- wp:paragraph -->
+<p>' . esc_html($label) . '</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>' . esc_html($value) . '</p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:group -->';
+	};
+
+	// Spenden-Popup: die Wege zu spenden als ausklappbare Abschnitte (Block
+	// "Details"). Es ist immer nur einer offen (popup.js).
+	$abschnitt = function ($titel, $inhalt) {
+		return '<!-- wp:details -->
+<details class="wp-block-details"><summary>' . esc_html($titel) . '</summary>' . $inhalt . '</details>
+<!-- /wp:details -->';
+	};
+
+	$button = function ($text, $url) {
+		return '<!-- wp:buttons {"layout":{"type":"flex","justifyContent":"center"}} -->
+<div class="wp-block-buttons"><!-- wp:button {"linkTarget":"_blank","rel":"noopener"} -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="' . esc_url($url) . '" target="_blank" rel="noopener">' . esc_html($text) . '</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->';
+	};
+
+	$absatz = function ($text) {
+		return '<!-- wp:paragraph -->
+<p>' . esc_html($text) . '</p>
+<!-- /wp:paragraph -->';
+	};
+
+	register_block_pattern('wildtierhilfe/spenden-popup', [
+		'title'      => __('Popup: Spenden', 'wildtierhilfe'),
+		'categories' => ['call-to-action'],
+		'content'    => '<!-- wp:group {"anchor":"spenden","className":"is-style-popup"} -->
+<div id="spenden" class="wp-block-group is-style-popup"><!-- wp:heading -->
+<h2 class="wp-block-heading">' . esc_html__('Spenden', 'wildtierhilfe') . '</h2>
+<!-- /wp:heading -->
+
+' . $absatz(__('Vielen Dank, dass Sie unsere Arbeit unterstützen möchten!', 'wildtierhilfe')) . '
+
+' . $abschnitt(__('PayPal', 'wildtierhilfe'),
+	$absatz(__('Schnell und einfach online spenden.', 'wildtierhilfe')) . "\n\n"
+	. $button(__('Mit PayPal spenden', 'wildtierhilfe'), 'https://www.paypal.com/donate/?hosted_button_id=PLATZHALTER')
+) . '
+
+' . $abschnitt(__('Amazon-Wunschliste', 'wildtierhilfe'),
+	$absatz(__('Sie möchten lieber Sachspenden schicken? Auf unserer Wunschliste finden Sie Futter, Pflegematerial und Zubehör, das wir gerade dringend brauchen.', 'wildtierhilfe')) . "\n\n"
+	. $button(__('Zur Wunschliste', 'wildtierhilfe'), 'https://www.amazon.de/hz/wishlist/ls/PLATZHALTER')
+) . '
+
+' . $abschnitt(__('Überweisung', 'wildtierhilfe'),
+	$bankangabe(__('Kontoinhaber', 'wildtierhilfe'), 'Wildtierhilfe e. V.') . "\n\n"
+	. $bankangabe(__('IBAN', 'wildtierhilfe'), 'DE00 0000 0000 0000 0000 00') . "\n\n"
+	. $bankangabe(__('BIC', 'wildtierhilfe'), 'XXXXXXXXXXX') . "\n\n"
+	. $bankangabe(__('Bank', 'wildtierhilfe'), 'Name der Bank')
+) . '</div>
+<!-- /wp:group -->',
+	]);
 });
 
 /**
@@ -598,6 +680,14 @@ add_action('wp_enqueue_scripts', function () {
 		get_theme_file_uri('tabs.js'),
 		[],
 		wildtierhilfe_asset_version('tabs.js'),
+		true
+	);
+
+	wp_enqueue_script(
+		'wildtierhilfe-popup',
+		get_theme_file_uri('popup.js'),
+		[],
+		wildtierhilfe_asset_version('popup.js'),
 		true
 	);
 
