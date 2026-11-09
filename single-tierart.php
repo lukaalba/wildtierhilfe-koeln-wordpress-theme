@@ -10,20 +10,7 @@
 <main id="main">
 	<?php while (have_posts()) : the_post(); ?>
 		<?php if (has_post_thumbnail()) : ?>
-			<div class="seitenbild">
-				<?php
-				the_post_thumbnail('full', [
-					'class'         => 'seitenbild__image',
-					'alt'           => '',
-					'sizes'         => '100vw',
-					'loading'       => 'eager',
-					'fetchpriority' => 'high',
-				]);
-				?>
-				<div class="container seitenbild__content">
-					<h1 class="seitenbild__title"><?php the_title(); ?></h1>
-				</div>
-			</div>
+			<?php get_template_part('template-parts/seitenbild'); ?>
 		<?php endif; ?>
 
 		<article class="entry entry--tierart">

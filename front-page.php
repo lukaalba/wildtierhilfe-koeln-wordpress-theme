@@ -23,6 +23,12 @@
 
 	<?php $abschnitte = wildtierhilfe_abschnitte(); ?>
 	<?php while ($abschnitte->have_posts()) : $abschnitte->the_post(); ?>
+		<?php
+		// Ratgeber-Abschnitt ausblenden, solange es keine Beiträge gibt
+		if (wildtierhilfe_ist_ratgeber_abschnitt(get_post()) && !wildtierhilfe_hat_beitraege()) {
+			continue;
+		}
+		?>
 		<article id="<?php echo esc_attr(get_post_field('post_name')); ?>" class="<?php echo esc_attr(wildtierhilfe_entry_classes()); ?>">
 			<div class="container entry__inner">
 				<h2 class="entry__title"><?php the_title(); ?></h2>

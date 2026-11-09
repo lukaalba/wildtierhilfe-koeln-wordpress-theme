@@ -590,7 +590,8 @@ body.admin-bar .hero {
 }
 
 /* ==========================================================================
-   Großes Bild oben auf einer Tierart-Seite (single-tierart.php)
+   Großes Bild oben auf Tierart-Seiten und Ratgeber-Beiträgen
+   (template-parts/seitenbild.php)
    Wie die Bilderrotation, aber nur 85 % der Bildschirmhöhe, damit der Anfang
    des Textes zu sehen ist. Der Titel steht in der Mitte, der Header liegt
    transparent darüber (nav.js).
@@ -757,20 +758,22 @@ body.admin-bar .hero {
 	max-width: 56rem;
 }
 
-/* Breiter Inhalt (80rem): Beiträge mit Tierarten (Bild + Text nebeneinander)
-   und Beiträge mit ACF-Feld "Inhaltsbreite: Volle Breite" */
+/* Breiter Inhalt (80rem): Abschnitte mit Tierarten (Bild + Text nebeneinander),
+   mit Beitrags-Übersicht und mit ACF-Feld "Inhaltsbreite: Volle Breite" */
 .entry__inner:has(.is-style-tierart),
+.entry__inner:has(.beitrags-uebersicht),
 .entry--breit .entry__inner {
 	max-width: 80rem;
 }
 
 .entry__title {
 	margin: 0 0 2.5rem;
-	font-size: 2.25rem;
+	font-size: clamp(1.625rem, 7vw, 2.25rem); /* schmale Smartphones: kleiner, damit lange Wörter passen */
 	line-height: 1.2;
 	font-weight: 700;
 	text-align: center;
 	color: var(--color-brand);
+	hyphens: auto; /* Notlösung, falls ein Wort trotzdem nicht passt */
 }
 
 @media (min-width: 768px) {

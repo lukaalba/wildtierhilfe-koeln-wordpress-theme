@@ -209,18 +209,104 @@ function wildtierhilfe_render_tierarten()
 }
 
 /**
- * Text der Vorschau: der "Textauszug" (Seitenleiste im Editor), sonst der
- * Anfang des Textes. Etwas länger als nötig – die Vorschau kürzt per CSS
- * auf 5 Zeilen (blocks.css).
+ * Block "Beitrags-Übersicht" (Editor: Block einfügen → "Beitrags-Übersicht"):
+ * Beiträge als Karten (Titel + Kurztext), die ganze Karte verlinkt auf den
+ * Beitrag. In der Seitenleiste des Blocks werden die Beiträge ausgewählt und
+ * sortiert (editor.js); ohne Auswahl erscheinen die neuesten.
  */
-function wildtierhilfe_tierart_vorschau_text($post)
+add_action('init', function () {
+	register_block_type('wildtierhilfe/beitraege', [
+		'api_version'     => 3,
+		'title'           => __('Beitrags-Übersicht', 'wildtierhilfe'),
+		'category'        => 'widgets',
+		'style_handles'   => ['wildtierhilfe-blocks'],
+		'supports'        => ['html' => false],
+		'attributes'      => [
+			'beitraege' => ['type' => 'array', 'items' => ['type' => 'integer'], 'default' => []],
+			'anzahl'    => ['type' => 'integer', 'default' => 4],
+		],
+		'render_callback' => 'wildtierhilfe_render_beitraege',
+	]);
+}, 11);
+
+function wildtierhilfe_render_beitraege($attributes)
+{
+	$ids = array_filter(array_map('intval', $attributes['beitraege'] ?? []));
+
+	$beitraege = get_posts($ids ? [
+		'post_type'      => 'post',
+		'post__in'       => $ids,
+		'orderby'        => 'post__in', // Reihenfolge wie im Editor ausgewählt
+		'posts_per_page' => -1,
+	] : [
+		'post_type'      => 'post',
+		'posts_per_page' => max(1, (int) ($attributes['anzahl'] ?? 4)),
+	]);
+
+	return wildtierhilfe_beitrags_uebersicht($beitraege);
+}
+
+/**
+ * Beiträge als Karten (Titel + Kurztext, ganze Karte verlinkt). Genutzt vom
+ * Block "Beitrags-Übersicht" und von der Ratgeber-Übersicht (home.php).
+ * Hat ein Beitrag ein Beitragsbild, füllt es die Karte als Hintergrund
+ * (Text dann weiß auf dunklem Verlauf, blocks.css).
+ */
+function wildtierhilfe_beitrags_uebersicht($beitraege, $ueberschrift = 'h3')
+{
+	if (!$beitraege) {
+		return '';
+	}
+
+	$html = '<div class="beitrags-uebersicht">';
+	foreach ($beitraege as $beitrag) {
+		$text = wildtierhilfe_kurztext($beitrag, 25);
+		$bild = has_post_thumbnail($beitrag)
+			? get_the_post_thumbnail($beitrag, 'large', [
+				'class'   => 'beitrags-karte__bild',
+				'alt'     => '',
+				'sizes'   => '(min-width: 640px) 40rem, 100vw',
+				'loading' => 'lazy',
+			])
+			: '';
+
+		$html .= sprintf(
+			'<a class="beitrags-karte%5$s" href="%1$s">%6$s<%4$s class="beitrags-karte__titel">%2$s</%4$s>%3$s</a>',
+			esc_url(get_permalink($beitrag)),
+			esc_html(get_the_title($beitrag)),
+			$text !== '' ? '<p class="beitrags-karte__text">' . esc_html($text) . '</p>' : '',
+			tag_escape($ueberschrift),
+			$bild !== '' ? ' beitrags-karte--bild' : '',
+			$bild
+		);
+	}
+	$html .= '</div>';
+
+	return $html;
+}
+
+/**
+ * Kurztext eines Beitrags: der "Textauszug" (Seitenleiste im Editor), sonst
+ * der Anfang des Textes mit höchstens $woerter Wörtern.
+ */
+function wildtierhilfe_kurztext($post, $woerter)
 {
 	if (has_excerpt($post)) {
 		return wp_strip_all_tags($post->post_excerpt);
 	}
 
 	$text = excerpt_remove_blocks(strip_shortcodes($post->post_content));
-	return wp_trim_words(wp_strip_all_tags($text), 90, ' …');
+	return wp_trim_words(wp_strip_all_tags($text), $woerter, ' …');
+}
+
+/**
+ * Text der Vorschau: der "Textauszug" (Seitenleiste im Editor), sonst der
+ * Anfang des Textes. Etwas länger als nötig – die Vorschau kürzt per CSS
+ * auf 5 Zeilen (blocks.css).
+ */
+function wildtierhilfe_tierart_vorschau_text($post)
+{
+	return wildtierhilfe_kurztext($post, 90);
 }
 
 /**
@@ -383,12 +469,189 @@ add_action('init', function () {
 }, 21);
 
 /**
- * Seiten mit großem Bild oben (Startseite: Bilderrotation, Tierart:
- * Beitragsbild). Der Header liegt dann transparent darüber.
+ * Einmalige Umstellung (Version 3): Startseiten-Abschnitt
+ * "Informationsmaterial" mit dem Block "Beitrags-Übersicht" direkt nach
+ * "Helfen" anlegen (die folgenden Abschnitte rücken eine Stelle nach hinten).
+ */
+add_action('init', function () {
+	if ((int) get_option('wildtierhilfe_abschnitte_version') !== 2) {
+		return;
+	}
+	update_option('wildtierhilfe_abschnitte_version', 3);
+
+	if (get_page_by_path('informationsmaterial', OBJECT, 'abschnitt')) {
+		return;
+	}
+
+	$helfen = get_page_by_path('helfen', OBJECT, 'abschnitt');
+	$order  = $helfen ? $helfen->menu_order + 1 : 99;
+
+	foreach (get_posts(['post_type' => 'abschnitt', 'post_status' => 'any', 'posts_per_page' => -1]) as $abschnitt) {
+		if ($abschnitt->menu_order >= $order) {
+			wp_update_post(['ID' => $abschnitt->ID, 'menu_order' => $abschnitt->menu_order + 1]);
+		}
+	}
+
+	$einleitung = __('Wissenswertes und praktische Hinweise rund um den Schutz und die Versorgung heimischer Wildtiere.', 'wildtierhilfe');
+
+	wp_insert_post([
+		'post_type'    => 'abschnitt',
+		'post_status'  => 'publish',
+		'post_title'   => wp_slash(__('Informationsmaterial', 'wildtierhilfe')),
+		'post_name'    => 'informationsmaterial',
+		'menu_order'   => $order,
+		'post_content' => wp_slash(
+			'<!-- wp:paragraph {"align":"center","className":"is-style-einleitung"} -->' . "\n"
+			. '<p class="has-text-align-center is-style-einleitung">' . esc_html($einleitung) . '</p>' . "\n"
+			. '<!-- /wp:paragraph -->' . "\n\n"
+			. '<!-- wp:wildtierhilfe/beitraege /-->'
+		),
+	]);
+}, 22);
+
+/**
+ * Einmalige Umstellung (Version 4): Ratgeber.
+ * 1. Seite "Ratgeber" anlegen und unter Einstellungen → Lesen als
+ *    Beitragsseite eintragen – sie zeigt alle Beiträge (home.php).
+ * 2. Beiträge liegen unter "/ratgeber/<Titelform>/" (Einstellungen → Permalinks).
+ * 3. Menüpunkte, die auf den Startseiten-Abschnitt mit der Beitrags-Übersicht
+ *    zeigen, zeigen jetzt auf die Seite "Ratgeber".
+ */
+add_action('init', function () {
+	if ((int) get_option('wildtierhilfe_abschnitte_version') !== 3) {
+		return;
+	}
+	update_option('wildtierhilfe_abschnitte_version', 4);
+
+	$ratgeber = get_post((int) get_option('page_for_posts'));
+
+	if (!$ratgeber || $ratgeber->post_type !== 'page') {
+		$ratgeber = get_page_by_path('ratgeber');
+	}
+
+	if (!$ratgeber) {
+		// Nicht in Menüs mit "Neue Seiten automatisch hinzufügen" aufnehmen
+		remove_action('transition_post_status', '_wp_auto_add_pages_to_menu', 10);
+
+		$einleitung = __('Wissenswertes und praktische Hinweise rund um den Schutz und die Versorgung heimischer Wildtiere.', 'wildtierhilfe');
+
+		$id = wp_insert_post([
+			'post_type'    => 'page',
+			'post_status'  => 'publish',
+			'post_title'   => wp_slash(__('Ratgeber', 'wildtierhilfe')),
+			'post_name'    => 'ratgeber',
+			'post_content' => wp_slash(
+				'<!-- wp:paragraph {"align":"center","className":"is-style-einleitung"} -->' . "\n"
+				. '<p class="has-text-align-center is-style-einleitung">' . esc_html($einleitung) . '</p>' . "\n"
+				. '<!-- /wp:paragraph -->'
+			),
+		]);
+		$ratgeber = $id && !is_wp_error($id) ? get_post($id) : null;
+	}
+
+	if (!$ratgeber) {
+		return;
+	}
+
+	update_option('page_for_posts', $ratgeber->ID);
+
+	// Permalinks: "/ratgeber/<Titelform>/" (bei "/index.php/…"-Permalinks mit diesem Präfix)
+	global $wp_rewrite;
+	$prefix = str_starts_with((string) get_option('permalink_structure'), '/index.php/') ? '/index.php' : '';
+	$wp_rewrite->set_permalink_structure($prefix . '/' . $ratgeber->post_name . '/%postname%/');
+
+	// Menüpunkte: Abschnitt mit Beitrags-Übersicht → Seite "Ratgeber"
+	$menu_items = get_posts([
+		'post_type'      => 'nav_menu_item',
+		'posts_per_page' => -1,
+		'meta_query'     => [['key' => '_menu_item_object', 'value' => 'abschnitt']],
+	]);
+	foreach ($menu_items as $item) {
+		$abschnitt = get_post((int) get_post_meta($item->ID, '_menu_item_object_id', true));
+		if ($abschnitt && has_block('wildtierhilfe/beitraege', $abschnitt)) {
+			update_post_meta($item->ID, '_menu_item_object', 'page');
+			update_post_meta($item->ID, '_menu_item_object_id', $ratgeber->ID);
+		}
+	}
+
+	flush_rewrite_rules(false);
+}, 23);
+
+/**
+ * Gibt es veröffentlichte Beiträge (Ratgeber)? Ohne Beiträge werden der
+ * Startseiten-Abschnitt mit der Beitrags-Übersicht (front-page.php) und
+ * Menüpunkte zum Ratgeber ausgeblendet.
+ */
+function wildtierhilfe_hat_beitraege()
+{
+	static $hat = null;
+
+	if ($hat === null) {
+		$hat = (bool) get_posts([
+			'post_type'      => 'post',
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		]);
+	}
+
+	return $hat;
+}
+
+/**
+ * Ist dieser Startseiten-Abschnitt der Ratgeber (enthält er den Block
+ * "Beitrags-Übersicht")?
+ */
+function wildtierhilfe_ist_ratgeber_abschnitt($post)
+{
+	return get_post_type($post) === 'abschnitt' && has_block('wildtierhilfe/beitraege', $post);
+}
+
+/**
+ * Hauptmenü und Footer-Menü: Ohne Beiträge verschwinden Menüpunkte, die zur
+ * Ratgeber-Seite oder zum Ratgeber-Abschnitt führen (samt ihren Unterpunkten).
+ */
+add_filter('wp_nav_menu_objects', function ($items) {
+	if (wildtierhilfe_hat_beitraege()) {
+		return $items;
+	}
+
+	$ratgeber_seite = (int) get_option('page_for_posts');
+	$entfernt       = [];
+
+	foreach ($items as $key => $item) {
+		$ist_ratgeber = $item->type === 'post_type' && (
+			($item->object === 'page' && (int) $item->object_id === $ratgeber_seite && $ratgeber_seite)
+			|| ($item->object === 'abschnitt' && wildtierhilfe_ist_ratgeber_abschnitt((int) $item->object_id))
+		);
+
+		if ($ist_ratgeber || in_array((int) $item->menu_item_parent, $entfernt, true)) {
+			$entfernt[] = (int) $item->db_id;
+			unset($items[$key]);
+		}
+	}
+
+	return array_values($items);
+}, 5); // vor dem Ergänzen der Tab-Unterpunkte
+
+/**
+ * Ratgeber-Übersicht (Beitragsseite, home.php): alle Beiträge ohne
+ * Seitenumbruch, neueste zuerst.
+ */
+add_action('pre_get_posts', function ($query) {
+	if (!is_admin() && $query->is_main_query() && $query->is_home()) {
+		$query->set('posts_per_page', -1);
+		$query->set('ignore_sticky_posts', true);
+	}
+});
+
+/**
+ * Seiten mit großem Bild oben (Startseite: Bilderrotation, Tierart und
+ * Ratgeber-Beitrag: Beitragsbild). Der Header liegt dann transparent darüber.
  */
 function wildtierhilfe_has_hero()
 {
-	return is_front_page() || (is_singular('tierart') && has_post_thumbnail());
+	return is_front_page() || (is_singular(['tierart', 'post']) && has_post_thumbnail());
 }
 
 /**
@@ -541,6 +804,13 @@ add_action('init', function () {
 		[],
 		wildtierhilfe_asset_version('blocks.css')
 	);
+
+	// Absatz "Einleitung": größerer, zentrierter Text unter einer Abschnitts-Überschrift
+	register_block_style('core/paragraph', [
+		'name'         => 'einleitung',
+		'label'        => __('Einleitung', 'wildtierhilfe'),
+		'style_handle' => 'wildtierhilfe-blocks',
+	]);
 
 	register_block_style('core/group', [
 		'name'         => 'infobox',
@@ -901,7 +1171,7 @@ add_action('enqueue_block_editor_assets', function () {
 	wp_enqueue_script(
 		'wildtierhilfe-editor',
 		get_theme_file_uri('editor.js'),
-		['wp-block-editor', 'wp-blocks', 'wp-components', 'wp-compose', 'wp-element', 'wp-hooks', 'wp-server-side-render'],
+		['wp-block-editor', 'wp-blocks', 'wp-components', 'wp-compose', 'wp-data', 'wp-element', 'wp-hooks', 'wp-server-side-render'],
 		wildtierhilfe_asset_version('editor.js'),
 		true
 	);
@@ -1184,11 +1454,19 @@ add_action('template_redirect', function () {
 		exit;
 	}
 
-	$name = get_query_var('name');
-	if (is_404() && $name !== '') {
+	// Letzter Teil der aufgerufenen Adresse, z. B. "mission" aus ".../2025/10/23/mission/"
+	$name = is_404() ? sanitize_title(basename((string) $GLOBALS['wp']->request)) : '';
+	if ($name !== '') {
 		$abschnitt = get_page_by_path($name, OBJECT, 'abschnitt');
 		if ($abschnitt && $abschnitt->post_status === 'publish') {
 			wp_safe_redirect(wildtierhilfe_post_anchor_url($abschnitt), 301);
+			exit;
+		}
+
+		// Alte Beitrags-Links mit Datum (".../2026/11/09/erste-hilfe/") → "/ratgeber/erste-hilfe/"
+		$beitrag = get_page_by_path($name, OBJECT, 'post');
+		if ($beitrag && $beitrag->post_status === 'publish') {
+			wp_safe_redirect(get_permalink($beitrag), 301);
 			exit;
 		}
 	}
