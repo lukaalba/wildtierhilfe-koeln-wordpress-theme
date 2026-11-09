@@ -126,6 +126,25 @@
 	}
 }
 
+/* Tierarten-Vorschau (Block "Tierarten-Vorschau", functions.php): Text auf
+   5 Zeilen gekürzt, darunter der Link zur Seite der Tierart */
+.tierart-vorschau .tierart-vorschau__text {
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 5;
+	line-clamp: 5;
+	overflow: hidden;
+}
+
+.tierart-vorschau .tierart-vorschau__mehr {
+	margin-top: 1rem;
+	font-weight: 600;
+}
+
+.tierart-vorschau__mehr a {
+	color: #245b38;
+}
+
 /* Tabs (tabs.js): Mehrere Tierart-Blöcke bzw. Gruppen mit Stil "Tab" direkt
    hintereinander werden zu Tabs, es ist immer nur einer sichtbar. Die Tab-Leiste ist so breit wie der
    Block darunter, alle Tabs sind gleich breit (mindestens 10rem); passen sie

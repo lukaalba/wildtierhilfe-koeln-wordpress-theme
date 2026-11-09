@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // sobald es nach oben aus dem Bild gescrollt ist, normaler Header.
 document.addEventListener('DOMContentLoaded', function () {
 	var header = document.getElementById('site-header');
-	var hero = document.querySelector('.hero');
+	var hero = document.querySelector('.hero, .seitenbild');
 
 	if (!header || !hero || !('IntersectionObserver' in window)) {
 		if (header) {

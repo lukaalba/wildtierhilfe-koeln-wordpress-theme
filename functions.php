@@ -104,6 +104,294 @@ add_action('init', function () {
 });
 
 /**
+ * Beitragstyp "Tierart": eine eigene Seite je Tierart (z. B. "/tiere/igel/").
+ * Beitragsbild = großes Bild oben auf der Seite und Bild in der Vorschau.
+ * Auf der Startseite zeigt der Block "Tierarten-Vorschau" alle Tierarten als
+ * Tabs (Bild, Anfang des Textes, "Weiter lesen …"), sortiert nach "Reihenfolge".
+ */
+add_action('init', function () {
+	register_post_type('tierart', [
+		'labels' => [
+			'name'                  => __('Tierarten', 'wildtierhilfe'),
+			'singular_name'         => __('Tierart', 'wildtierhilfe'),
+			'menu_name'             => __('Tierarten', 'wildtierhilfe'),
+			'all_items'             => __('Alle Tierarten', 'wildtierhilfe'),
+			'add_new'               => __('Tierart hinzufügen', 'wildtierhilfe'),
+			'add_new_item'          => __('Neue Tierart hinzufügen', 'wildtierhilfe'),
+			'edit_item'             => __('Tierart bearbeiten', 'wildtierhilfe'),
+			'new_item'              => __('Neue Tierart', 'wildtierhilfe'),
+			'view_item'             => __('Tierart ansehen', 'wildtierhilfe'),
+			'search_items'          => __('Tierarten durchsuchen', 'wildtierhilfe'),
+			'not_found'             => __('Keine Tierarten gefunden.', 'wildtierhilfe'),
+			'not_found_in_trash'    => __('Keine Tierarten im Papierkorb.', 'wildtierhilfe'),
+			'featured_image'        => __('Bild', 'wildtierhilfe'),
+			'set_featured_image'    => __('Bild festlegen', 'wildtierhilfe'),
+			'remove_featured_image' => __('Bild entfernen', 'wildtierhilfe'),
+			'use_featured_image'    => __('Als Bild verwenden', 'wildtierhilfe'),
+		],
+		'public'        => true,
+		'has_archive'   => false,
+		'show_in_rest'  => true,
+		'menu_position' => 5,
+		'menu_icon'     => 'dashicons-pets',
+		'rewrite'       => ['slug' => 'tiere', 'with_front' => false],
+		'supports'      => ['title', 'editor', 'thumbnail', 'excerpt', 'page-attributes', 'revisions'],
+	]);
+});
+
+/**
+ * Alle veröffentlichten Tierarten, sortiert nach "Reihenfolge".
+ */
+function wildtierhilfe_tierarten()
+{
+	return get_posts([
+		'post_type'      => 'tierart',
+		'posts_per_page' => -1,
+		'orderby'        => ['menu_order' => 'ASC', 'title' => 'ASC'],
+	]);
+}
+
+/**
+ * Kurzer Text für den Tab einer Tierart: Feld "Tab-Beschriftung", sonst der Titel.
+ */
+function wildtierhilfe_tierart_label($post)
+{
+	$label = trim((string) get_post_meta(get_post($post)->ID, 'tab_beschriftung', true));
+	return $label !== '' ? $label : get_the_title($post);
+}
+
+/**
+ * Block "Tierarten-Vorschau" (Editor: Block einfügen → "Tierarten"): alle
+ * Tierarten als Tierart-Blöcke (Bild + Text), die tabs.js zu Tabs zusammenfasst.
+ * Im Editor zeigt editor.js eine Vorschau, gespeichert wird nur der Platzhalter.
+ */
+add_action('init', function () {
+	register_block_type('wildtierhilfe/tierarten', [
+		'api_version'     => 3,
+		'title'           => __('Tierarten-Vorschau', 'wildtierhilfe'),
+		'category'        => 'widgets',
+		// Ausgabe nutzt das Markup von "Medien und Text" – dessen CSS lädt WordPress
+		// sonst nur, wenn der Block selbst auf der Seite steht
+		'style_handles'   => ['wp-block-media-text', 'wildtierhilfe-blocks'],
+		'supports'        => ['html' => false],
+		'render_callback' => 'wildtierhilfe_render_tierarten',
+	]);
+}, 11); // nach dem Registrieren von blocks.css
+
+function wildtierhilfe_render_tierarten()
+{
+	$html = '';
+
+	foreach (wildtierhilfe_tierarten() as $tierart) {
+		$text = wildtierhilfe_tierart_vorschau_text($tierart);
+		$link = get_permalink($tierart);
+
+		$html .= sprintf(
+			'<div class="wp-block-media-text is-stacked-on-mobile is-style-tierart tierart-vorschau" id="%1$s" data-tab-label="%2$s">'
+				. '<figure class="wp-block-media-text__media">%3$s</figure>'
+				. '<div class="wp-block-media-text__content">'
+				. '<h3 class="wp-block-heading">%4$s</h3>'
+				. '<p class="tierart-vorschau__text">%5$s</p>'
+				. '<p class="tierart-vorschau__mehr"><a href="%6$s" aria-label="%8$s">%7$s</a></p>'
+				. '</div></div>',
+			esc_attr($tierart->post_name),
+			esc_attr(wildtierhilfe_tierart_label($tierart)),
+			get_the_post_thumbnail($tierart, 'large', ['alt' => '']),
+			esc_html(get_the_title($tierart)),
+			esc_html($text),
+			esc_url($link),
+			esc_html__('Weiter lesen …', 'wildtierhilfe'),
+			esc_attr(sprintf(__('Weiter lesen: %s', 'wildtierhilfe'), get_the_title($tierart)))
+		);
+	}
+
+	return $html;
+}
+
+/**
+ * Text der Vorschau: der "Textauszug" (Seitenleiste im Editor), sonst der
+ * Anfang des Textes. Etwas länger als nötig – die Vorschau kürzt per CSS
+ * auf 5 Zeilen (blocks.css).
+ */
+function wildtierhilfe_tierart_vorschau_text($post)
+{
+	if (has_excerpt($post)) {
+		return wp_strip_all_tags($post->post_excerpt);
+	}
+
+	$text = excerpt_remove_blocks(strip_shortcodes($post->post_content));
+	return wp_trim_words(wp_strip_all_tags($text), 90, ' …');
+}
+
+/**
+ * ACF: kurze Tab-Beschriftung für Tierarten (z. B. "Bilche" statt
+ * "Bilche (Garten- und Siebenschläfer)").
+ */
+add_action('acf/init', function () {
+	acf_add_local_field_group([
+		'key'      => 'group_wildtierhilfe_tierart',
+		'title'    => __('Tab auf der Startseite', 'wildtierhilfe'),
+		'fields'   => [
+			[
+				'key'          => 'field_wildtierhilfe_tab_beschriftung',
+				'label'        => __('Tab-Beschriftung', 'wildtierhilfe'),
+				'name'         => 'tab_beschriftung',
+				'type'         => 'text',
+				'instructions' => __('Kurzer Text für den Tab. Leer: Titel der Tierart.', 'wildtierhilfe'),
+			],
+		],
+		'location' => [
+			[
+				['param' => 'post_type', 'operator' => '==', 'value' => 'tierart'],
+			],
+		],
+		'position' => 'side',
+	]);
+
+	acf_add_local_field_group([
+		'key'      => 'group_wildtierhilfe_tierart_links',
+		'title'    => __('Weiterführende Beiträge', 'wildtierhilfe'),
+		'fields'   => [
+			[
+				'key'           => 'field_wildtierhilfe_weitere_beitraege',
+				'label'         => __('Beiträge', 'wildtierhilfe'),
+				'name'          => 'weitere_beitraege',
+				'type'          => 'post_object',
+				'instructions'  => __('Bis zu 3 Beiträge, erscheinen als Links unter dem Text, z. B. „Erste Hilfe“. Reihenfolge per Ziehen.', 'wildtierhilfe'),
+				'post_type'     => ['post'],
+				'post_status'   => ['publish'],
+				'multiple'      => 1,
+				'allow_null'    => 1,
+				'ui'            => 1,
+				'return_format' => 'id',
+			],
+		],
+		'location' => [
+			[
+				['param' => 'post_type', 'operator' => '==', 'value' => 'tierart'],
+			],
+		],
+		'position' => 'side',
+	]);
+});
+
+/**
+ * Höchstens 3 weiterführende Beiträge: Beim Speichern mit mehr erscheint ein
+ * Hinweis am Feld.
+ */
+const WILDTIERHILFE_MAX_WEITERE_BEITRAEGE = 3;
+
+add_filter('acf/validate_value/key=field_wildtierhilfe_weitere_beitraege', function ($valid, $value) {
+	if ($valid === true && is_array($value) && count($value) > WILDTIERHILFE_MAX_WEITERE_BEITRAEGE) {
+		return sprintf(__('Bitte höchstens %d Beiträge auswählen.', 'wildtierhilfe'), WILDTIERHILFE_MAX_WEITERE_BEITRAEGE);
+	}
+
+	return $valid;
+}, 10, 2);
+
+/**
+ * Weiterführende Beiträge einer Tierart (Feld "Weiterführende Beiträge"),
+ * nur veröffentlichte, höchstens 3.
+ */
+function wildtierhilfe_weitere_beitraege($post = null)
+{
+	$ids = function_exists('get_field') ? get_field('weitere_beitraege', $post) : [];
+
+	$beitraege = array_values(array_filter(array_map('get_post', (array) $ids), function ($beitrag) {
+		return $beitrag && get_post_status($beitrag) === 'publish';
+	}));
+
+	return array_slice($beitraege, 0, WILDTIERHILFE_MAX_WEITERE_BEITRAEGE);
+}
+
+/**
+ * Einmalige Umstellung (Version 2): Die Tierart-Blöcke ("Medien und Text" mit
+ * Stil "Tierart") in den Startseiten-Abschnitten werden zu eigenen Tierarten
+ * (Bild → Beitragsbild, Überschrift → Titel, Text → Inhalt, Slug = bisheriger
+ * Anker, z. B. "igel"). An ihrer Stelle steht danach der Block
+ * "Tierarten-Vorschau".
+ */
+add_action('init', function () {
+	if ((int) get_option('wildtierhilfe_abschnitte_version') !== 1) {
+		return;
+	}
+	update_option('wildtierhilfe_abschnitte_version', 2);
+
+	$order = 0;
+
+	foreach (get_posts(['post_type' => 'abschnitt', 'post_status' => 'any', 'posts_per_page' => -1]) as $abschnitt) {
+		$blocks = parse_blocks($abschnitt->post_content);
+		$new    = [];
+		$placed = false;
+
+		foreach ($blocks as $block) {
+			if (!wildtierhilfe_is_tab($block) || $block['blockName'] !== 'core/media-text') {
+				$new[] = $block;
+				continue;
+			}
+
+			$tab     = wildtierhilfe_tab($block);
+			$title   = '';
+			$content = [];
+			foreach ($block['innerBlocks'] as $inner) {
+				if ($title === '' && $inner['blockName'] === 'core/heading') {
+					$title = trim(wp_strip_all_tags($inner['innerHTML']));
+				} else {
+					$content[] = $inner;
+				}
+			}
+
+			$id = wp_insert_post([
+				'post_type'    => 'tierart',
+				'post_status'  => $abschnitt->post_status === 'publish' ? 'publish' : 'draft',
+				'post_title'   => wp_slash($title !== '' ? $title : $tab['label']),
+				'post_name'    => $tab['anchor'],
+				'post_content' => wp_slash(serialize_blocks($content)),
+				'menu_order'   => ++$order,
+			]);
+
+			if ($id && !is_wp_error($id)) {
+				if (!empty($block['attrs']['mediaId'])) {
+					set_post_thumbnail($id, (int) $block['attrs']['mediaId']);
+				}
+				if (!empty($block['attrs']['tabLabel'])) {
+					update_post_meta($id, 'tab_beschriftung', $block['attrs']['tabLabel']);
+					update_post_meta($id, '_tab_beschriftung', 'field_wildtierhilfe_tab_beschriftung');
+				}
+			}
+
+			if (!$placed) {
+				$new[]  = ['blockName' => 'wildtierhilfe/tierarten', 'attrs' => [], 'innerBlocks' => [], 'innerHTML' => '', 'innerContent' => []];
+				$placed = true;
+			}
+		}
+
+		if ($placed) {
+			// Leerzeilen zwischen den Blöcken neu setzen (sonst bleiben die der entfernten Blöcke stehen)
+			$new = array_filter($new, function ($block) {
+				return $block['blockName'] !== null || trim($block['innerHTML']) !== '';
+			});
+
+			wp_update_post([
+				'ID'           => $abschnitt->ID,
+				'post_content' => wp_slash(implode("\n\n", array_map('serialize_block', $new))),
+			]);
+		}
+	}
+
+	flush_rewrite_rules(false);
+}, 21);
+
+/**
+ * Seiten mit großem Bild oben (Startseite: Bilderrotation, Tierart:
+ * Beitragsbild). Der Header liegt dann transparent darüber.
+ */
+function wildtierhilfe_has_hero()
+{
+	return is_front_page() || (is_singular('tierart') && has_post_thumbnail());
+}
+
+/**
  * Alle Abschnitte der Startseite, sortiert nach "Reihenfolge".
  */
 function wildtierhilfe_abschnitte()
@@ -566,7 +854,7 @@ add_action('acf/init', function () {
  * beginnt dann ganz oben und der Header liegt darüber (style.css).
  */
 add_filter('body_class', function ($classes) {
-	if (is_front_page()) {
+	if (wildtierhilfe_has_hero()) {
 		$classes[] = 'has-hero';
 	}
 
@@ -613,7 +901,7 @@ add_action('enqueue_block_editor_assets', function () {
 	wp_enqueue_script(
 		'wildtierhilfe-editor',
 		get_theme_file_uri('editor.js'),
-		['wp-block-editor', 'wp-components', 'wp-compose', 'wp-element', 'wp-hooks'],
+		['wp-block-editor', 'wp-blocks', 'wp-components', 'wp-compose', 'wp-element', 'wp-hooks', 'wp-server-side-render'],
 		wildtierhilfe_asset_version('editor.js'),
 		true
 	);
@@ -670,6 +958,18 @@ function wildtierhilfe_post_tabs($post)
 	$tabs = [];
 	$walk = function ($blocks) use (&$walk, &$tabs) {
 		foreach ($blocks as $block) {
+			// Block "Tierarten-Vorschau": je Tierart ein Tab, der Menüpunkt führt zu ihrer Seite
+			if ($block['blockName'] === 'wildtierhilfe/tierarten') {
+				foreach (wildtierhilfe_tierarten() as $tierart) {
+					$tabs[] = [
+						'label'  => wildtierhilfe_tierart_label($tierart),
+						'anchor' => $tierart->post_name,
+						'url'    => get_permalink($tierart),
+					];
+				}
+				continue;
+			}
+
 			if (wildtierhilfe_is_tab($block)) {
 				$tab = wildtierhilfe_tab($block);
 				if ($tab['label'] !== '') {
@@ -751,7 +1051,7 @@ add_filter('wp_nav_menu_objects', function ($items, $args) {
 				'object'           => 'custom',
 				'type'             => 'custom',
 				'title'            => $tab['label'],
-				'url'              => home_url('/') . '#' . $tab['anchor'],
+				'url'              => $tab['url'] ?? home_url('/') . '#' . $tab['anchor'],
 				'target'           => '',
 				'attr_title'       => '',
 				'description'      => '',

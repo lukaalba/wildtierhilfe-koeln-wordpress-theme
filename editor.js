@@ -113,4 +113,26 @@
 	}, 'withTabBeschriftung');
 
 	wp.hooks.addFilter('editor.BlockEdit', 'wildtierhilfe/tab-beschriftung', withTabBeschriftung);
+
+	/**
+	 * Block "Tierarten-Vorschau": zeigt alle Tierarten (Backend → Tierarten) als
+	 * Tabs. Inhalt und Aussehen kommen aus functions.php; im Editor stehen die
+	 * Tierarten untereinander.
+	 */
+	wp.blocks.registerBlockType('wildtierhilfe/tierarten', {
+		apiVersion: 3,
+		title: 'Tierarten-Vorschau',
+		description: 'Alle Tierarten als Tabs mit Bild, Textanfang und „Weiter lesen …“. Bearbeiten unter Tierarten.',
+		category: 'widgets',
+		icon: 'pets',
+		supports: { html: false },
+		edit: function () {
+			return el('div', wp.blockEditor.useBlockProps(),
+				el(wp.serverSideRender, { block: 'wildtierhilfe/tierarten' })
+			);
+		},
+		save: function () {
+			return null;
+		},
+	});
 })(window.wp);
