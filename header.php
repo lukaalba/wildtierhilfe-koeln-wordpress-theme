@@ -12,8 +12,8 @@
 
 <a class="skip-link" href="#main"><?php esc_html_e('Zum Inhalt springen', 'wildtierhilfe'); ?></a>
 
-<?php // Auf der Startseite liegt der Header transparent über dem Karussell (nav.js schaltet um) ?>
-<header id="site-header" class="site-header<?php echo is_home() ? ' is-transparent' : ''; ?>">
+<?php // Auf der Startseite und Tierart-Seiten liegt der Header transparent über dem großen Bild (nav.js schaltet um) ?>
+<header id="site-header" class="site-header<?php echo wildtierhilfe_has_hero() ? ' is-transparent' : ''; ?>">
 	<div class="container site-header__inner">
 
 		<!-- Logo + Vereinsname -->
