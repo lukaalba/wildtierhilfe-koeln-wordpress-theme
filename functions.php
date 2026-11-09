@@ -67,6 +67,115 @@ add_action('init', function () {
 });
 
 /**
+ * Beitragstyp "Abschnitt": die Abschnitte der Startseite (Mission, Tiere,
+ * Helfen, Kontakt …). Sie erscheinen untereinander auf der Startseite
+ * (front-page.php), sortiert nach "Reihenfolge", jeweils mit ihrem Slug als
+ * Anker. Eigene Seiten im Frontend gibt es nicht – die Einzelansicht leitet
+ * zum Abschnitt auf der Startseite weiter, nur die Vorschau aus dem Editor
+ * bleibt erreichbar.
+ */
+add_action('init', function () {
+	register_post_type('abschnitt', [
+		'labels' => [
+			'name'               => __('Startseiten-Abschnitte', 'wildtierhilfe'),
+			'singular_name'      => __('Abschnitt', 'wildtierhilfe'),
+			'menu_name'          => __('Startseite', 'wildtierhilfe'),
+			'all_items'          => __('Alle Abschnitte', 'wildtierhilfe'),
+			'add_new'            => __('Abschnitt hinzufügen', 'wildtierhilfe'),
+			'add_new_item'       => __('Neuen Abschnitt hinzufügen', 'wildtierhilfe'),
+			'edit_item'          => __('Abschnitt bearbeiten', 'wildtierhilfe'),
+			'new_item'           => __('Neuer Abschnitt', 'wildtierhilfe'),
+			'view_item'          => __('Abschnitt ansehen', 'wildtierhilfe'),
+			'search_items'       => __('Abschnitte durchsuchen', 'wildtierhilfe'),
+			'not_found'          => __('Keine Abschnitte gefunden.', 'wildtierhilfe'),
+			'not_found_in_trash' => __('Keine Abschnitte im Papierkorb.', 'wildtierhilfe'),
+		],
+		'public'              => false,
+		'publicly_queryable'  => true, // für die Vorschau im Editor
+		'exclude_from_search' => true,
+		'show_ui'             => true,
+		'show_in_nav_menus'   => true, // Menüpunkte springen zum Abschnitt
+		'show_in_rest'        => true, // Block-Editor
+		'menu_position'       => 4,
+		'menu_icon'           => 'dashicons-admin-home',
+		'rewrite'             => ['slug' => 'abschnitt', 'with_front' => false],
+		'supports'            => ['title', 'editor', 'page-attributes', 'revisions'],
+	]);
+});
+
+/**
+ * Alle Abschnitte der Startseite, sortiert nach "Reihenfolge".
+ */
+function wildtierhilfe_abschnitte()
+{
+	return new WP_Query([
+		'post_type'      => 'abschnitt',
+		'posts_per_page' => -1,
+		'orderby'        => ['menu_order' => 'ASC', 'date' => 'ASC'],
+		'no_found_rows'  => true,
+	]);
+}
+
+/**
+ * Einmalige Umstellung (läuft beim ersten Aufruf nach dem Theme-Update, auch
+ * auf dem Live-System):
+ * 1. Die bisherigen Beiträge (= Startseiten-Abschnitte) werden zu "Abschnitt".
+ *    Beiträge sind damit frei für Aktuelles/Wissenswertes.
+ * 2. Menüpunkte, die auf diese Beiträge zeigen, zeigen jetzt auf die Abschnitte.
+ * 3. Gibt es noch keine statische Startseite, wird die Seite "Startseite"
+ *    angelegt und unter Einstellungen → Lesen als Startseite eingetragen.
+ */
+add_action('init', function () {
+	if (get_option('wildtierhilfe_abschnitte_version') >= 1) {
+		return;
+	}
+	// Erst festhalten, damit parallele Aufrufe die Umstellung nicht doppelt ausführen
+	update_option('wildtierhilfe_abschnitte_version', 1);
+
+	global $wpdb;
+
+	$ids = $wpdb->get_col("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'post'");
+	if ($ids) {
+		$in = implode(',', array_map('intval', $ids));
+
+		$wpdb->query("UPDATE {$wpdb->posts} SET post_type = 'abschnitt' WHERE ID IN ($in)");
+
+		$wpdb->query(
+			"UPDATE {$wpdb->postmeta} AS object
+			 JOIN {$wpdb->postmeta} AS object_id
+			   ON object_id.post_id = object.post_id AND object_id.meta_key = '_menu_item_object_id'
+			 SET object.meta_value = 'abschnitt'
+			 WHERE object.meta_key = '_menu_item_object'
+			   AND object.meta_value = 'post'
+			   AND object_id.meta_value IN ($in)"
+		);
+
+		foreach ($ids as $id) {
+			clean_post_cache((int) $id);
+		}
+	}
+
+	if (get_option('show_on_front') !== 'page' || !get_post(get_option('page_on_front'))) {
+		// Die Startseite nicht in Menüs mit "Neue Seiten automatisch hinzufügen" aufnehmen
+		remove_action('transition_post_status', '_wp_auto_add_pages_to_menu', 10);
+
+		$front_id = wp_insert_post([
+			'post_type'   => 'page',
+			'post_status' => 'publish',
+			'post_title'  => __('Startseite', 'wildtierhilfe'),
+			'post_name'   => 'startseite',
+		]);
+
+		if ($front_id && !is_wp_error($front_id)) {
+			update_option('show_on_front', 'page');
+			update_option('page_on_front', $front_id);
+		}
+	}
+
+	flush_rewrite_rules(false);
+}, 20);
+
+/**
  * Customizer: Überschrift und Text der Bilderrotation (für alle Bilder gleich).
  */
 add_action('customize_register', function ($wp_customize) {
@@ -442,7 +551,7 @@ add_action('acf/init', function () {
 		],
 		'location' => [
 			[
-				['param' => 'post_type', 'operator' => '==', 'value' => 'post'],
+				['param' => 'post_type', 'operator' => '==', 'value' => 'abschnitt'],
 			],
 			[
 				['param' => 'post_type', 'operator' => '==', 'value' => 'page'],
@@ -457,7 +566,7 @@ add_action('acf/init', function () {
  * beginnt dann ganz oben und der Header liegt darüber (style.css).
  */
 add_filter('body_class', function ($classes) {
-	if (is_home()) {
+	if (is_front_page()) {
 		$classes[] = 'has-hero';
 	}
 
@@ -601,7 +710,7 @@ add_filter('render_block_core/media-text', $wildtierhilfe_tab_attributes, 10, 2)
 add_filter('render_block_core/group', $wildtierhilfe_tab_attributes, 10, 2);
 
 /**
- * Hauptmenü: Verweist ein Menüpunkt auf einen Beitrag mit Tabs (z. B. "Tiere"
+ * Hauptmenü: Verweist ein Menüpunkt auf einen Abschnitt mit Tabs (z. B. "Tiere"
  * mit den Tierarten, "Helfen" mit Ehrenamt und Spende), bekommt er jeden Tab als
  * Unterpunkt. Neue Tabs erscheinen so automatisch im Menü. Hat der Menüpunkt
  * schon eigene Unterpunkte, bleibt er unverändert.
@@ -619,7 +728,7 @@ add_filter('wp_nav_menu_objects', function ($items, $args) {
 	foreach ($items as $item) {
 		$result[] = $item;
 
-		if ($item->object !== 'post' || in_array((int) $item->db_id, $parents, true)) {
+		if ($item->object !== 'abschnitt' || in_array((int) $item->db_id, $parents, true)) {
 			continue;
 		}
 
@@ -691,7 +800,7 @@ add_action('wp_enqueue_scripts', function () {
 		true
 	);
 
-	if (is_home()) {
+	if (is_front_page()) {
 		wp_enqueue_script(
 			'wildtierhilfe-slider',
 			get_theme_file_uri('slider.js'),
@@ -718,8 +827,8 @@ add_filter('nav_menu_link_attributes', function ($atts) {
 });
 
 /**
- * Alle Beiträge stehen auf der Startseite, jeweils mit ihrem Slug als Anker
- * (siehe index.php). Diese URL führt zu einem Beitrag: "<Startseiten-URL>/#slug".
+ * Alle Abschnitte stehen auf der Startseite, jeweils mit ihrem Slug als Anker
+ * (siehe front-page.php). Diese URL führt zu einem Abschnitt: "<Startseiten-URL>/#slug".
  */
 function wildtierhilfe_post_anchor_url($post)
 {
@@ -727,81 +836,36 @@ function wildtierhilfe_post_anchor_url($post)
 }
 
 /**
- * Feste Reihenfolge der Beiträge: Feld "Reihenfolge" im Editor
- * (Seitenleiste → Beitrag), kleinere Zahl = weiter oben.
- */
-add_action('init', function () {
-	add_post_type_support('post', 'page-attributes');
-});
-
-/**
- * Die REST-Schnittstelle (über sie speichert der Block-Editor) hat für "post"
- * eine feste Feldliste ohne "menu_order" und verwirft den Wert sonst stillschweigend.
- * Deshalb hier: Feld ausgeben (Editor zeigt den gespeicherten Wert) und beim
- * Speichern übernehmen.
- */
-add_action('rest_api_init', function () {
-	register_rest_field('post', 'menu_order', [
-		'get_callback' => function ($post) {
-			return (int) get_post_field('menu_order', $post['id']);
-		},
-		'schema'       => [
-			'description' => __('Reihenfolge auf der Startseite.', 'wildtierhilfe'),
-			'type'        => 'integer',
-			'context'     => ['view', 'edit'],
-		],
-	]);
-});
-
-add_filter('rest_pre_insert_post', function ($prepared_post, $request) {
-	if (isset($request['menu_order'])) {
-		$prepared_post->menu_order = (int) $request['menu_order'];
-	}
-
-	return $prepared_post;
-}, 10, 2);
-
-/**
- * Startseite: alle Beiträge ohne Seitenumbruch, sortiert nach "Reihenfolge".
- * Backend-Liste "Beiträge": dieselbe Sortierung, solange man nicht selbst
- * auf eine Spalte zum Sortieren klickt.
+ * Backend-Liste "Startseiten-Abschnitte": sortiert nach "Reihenfolge"
+ * (kleinere Zahl = weiter oben), solange man nicht selbst auf eine Spalte zum
+ * Sortieren klickt.
  */
 add_action('pre_get_posts', function ($query) {
-	if (!$query->is_main_query()) {
-		return;
-	}
-
-	if (!is_admin() && $query->is_home()) {
-		$query->set('posts_per_page', -1);
-		$query->set('orderby', ['menu_order' => 'ASC', 'date' => 'ASC']);
-		$query->set('ignore_sticky_posts', true);
-	}
-
-	if (is_admin() && $GLOBALS['pagenow'] === 'edit.php' && $query->get('post_type') === 'post' && empty($_GET['orderby'])) {
+	if (is_admin() && $query->is_main_query() && $GLOBALS['pagenow'] === 'edit.php' && $query->get('post_type') === 'abschnitt' && empty($_GET['orderby'])) {
 		$query->set('orderby', ['menu_order' => 'ASC', 'date' => 'ASC']);
 	}
 });
 
 /**
- * Backend-Liste "Beiträge": Spalte "Reihenfolge".
+ * Backend-Liste "Startseiten-Abschnitte": Spalte "Reihenfolge".
  */
-add_filter('manage_post_posts_columns', function ($columns) {
+add_filter('manage_abschnitt_posts_columns', function ($columns) {
 	$columns['menu_order'] = __('Reihenfolge', 'wildtierhilfe');
 	return $columns;
 });
 
-add_action('manage_post_posts_custom_column', function ($column, $post_id) {
+add_action('manage_abschnitt_posts_custom_column', function ($column, $post_id) {
 	if ($column === 'menu_order') {
 		echo (int) get_post_field('menu_order', $post_id);
 	}
 }, 10, 2);
 
 /**
- * Menüpunkte, die auf einen Beitrag zeigen, springen zu dessen Abschnitt
- * auf der Startseite statt die Einzelansicht zu öffnen.
+ * Menüpunkte, die auf einen Abschnitt zeigen, springen zu ihm auf der
+ * Startseite statt die Einzelansicht zu öffnen.
  */
 add_filter('nav_menu_link_attributes', function ($atts, $item) {
-	if ($item->type === 'post_type' && $item->object === 'post') {
+	if ($item->type === 'post_type' && $item->object === 'abschnitt') {
 		$atts['href'] = wildtierhilfe_post_anchor_url($item->object_id);
 	}
 
@@ -809,13 +873,23 @@ add_filter('nav_menu_link_attributes', function ($atts, $item) {
 }, 10, 2);
 
 /**
- * Die Einzelansicht eines Beitrags (z. B. aus Suchmaschinen oder alten Links)
- * leitet ebenfalls zum Abschnitt auf der Startseite weiter. Vorschauen aus dem
- * Editor bleiben erreichbar.
+ * Die Einzelansicht eines Abschnitts leitet zum Abschnitt auf der Startseite
+ * weiter. Vorschauen aus dem Editor bleiben erreichbar.
+ * Alte Links aus der Zeit, als die Abschnitte noch Beiträge waren
+ * (z. B. ".../2025/10/23/mission/" aus Suchmaschinen), führen ebenfalls dorthin.
  */
 add_action('template_redirect', function () {
-	if (is_singular('post') && !is_preview()) {
-		wp_safe_redirect(wildtierhilfe_post_anchor_url(get_queried_object_id()));
+	if (is_singular('abschnitt') && !is_preview()) {
+		wp_safe_redirect(wildtierhilfe_post_anchor_url(get_queried_object_id()), 301);
 		exit;
+	}
+
+	$name = get_query_var('name');
+	if (is_404() && $name !== '') {
+		$abschnitt = get_page_by_path($name, OBJECT, 'abschnitt');
+		if ($abschnitt && $abschnitt->post_status === 'publish') {
+			wp_safe_redirect(wildtierhilfe_post_anchor_url($abschnitt), 301);
+			exit;
+		}
 	}
 });
