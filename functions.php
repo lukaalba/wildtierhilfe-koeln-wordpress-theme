@@ -107,7 +107,7 @@ add_action('init', function () {
  * Beitragstyp "Tierart": eine eigene Seite je Tierart (z. B. "/tiere/igel/").
  * Beitragsbild = großes Bild oben auf der Seite und Bild in der Vorschau.
  * Auf der Startseite zeigt der Block "Tierarten-Vorschau" alle Tierarten als
- * Tabs (Bild, Anfang des Textes, "Weiter lesen …"), sortiert nach "Reihenfolge".
+ * Tabs (Bild, Anfang des Textes, "Weiterlesen …"), sortiert nach "Reihenfolge".
  */
 add_action('init', function () {
 	register_post_type('tierart', [
@@ -200,7 +200,7 @@ function wildtierhilfe_render_tierarten()
 			esc_html(get_the_title($tierart)),
 			esc_html($text),
 			esc_url($link),
-			esc_html__('Weiter lesen …', 'wildtierhilfe'),
+			esc_html__('Weiterlesen …', 'wildtierhilfe'),
 			esc_attr(sprintf(__('Weiter lesen: %s', 'wildtierhilfe'), get_the_title($tierart)))
 		);
 	}
@@ -555,10 +555,15 @@ add_action('init', function () {
 
 	update_option('page_for_posts', $ratgeber->ID);
 
-	// Permalinks: "/ratgeber/<Titelform>/" (bei "/index.php/…"-Permalinks mit diesem Präfix)
+	// Permalinks: "/ratgeber/<Titelform>/" (bei "/index.php/…"-Permalinks mit diesem Präfix).
+	// Bei "einfachen" Permalinks ("?p=123") bleibt alles, wie es ist – schöne
+	// Adressen brauchen passende Server-Regeln (.htaccess), die hier fehlen könnten.
 	global $wp_rewrite;
-	$prefix = str_starts_with((string) get_option('permalink_structure'), '/index.php/') ? '/index.php' : '';
-	$wp_rewrite->set_permalink_structure($prefix . '/' . $ratgeber->post_name . '/%postname%/');
+	$structure = (string) get_option('permalink_structure');
+	if ($structure !== '') {
+		$prefix = str_starts_with($structure, '/index.php/') ? '/index.php' : '';
+		$wp_rewrite->set_permalink_structure($prefix . '/' . $ratgeber->post_name . '/%postname%/');
+	}
 
 	// Menüpunkte: Abschnitt mit Beitrags-Übersicht → Seite "Ratgeber"
 	$menu_items = get_posts([
@@ -576,6 +581,48 @@ add_action('init', function () {
 
 	flush_rewrite_rules(false);
 }, 23);
+
+/**
+ * Selbstheilung der Adressen: WordPress speichert seine URL-Regeln in der
+ * Datenbank. Baut z. B. ein Plugin sie neu, bevor die Tierarten registriert
+ * sind, fehlen die Regeln für "/tiere/…" (bzw. "/ratgeber/…") und diese Seiten
+ * landen auf 404. Fehlen sie, werden sie hier neu erzeugt – höchstens alle
+ * 5 Minuten, falls etwas sie immer wieder überschreibt.
+ */
+add_action('wp_loaded', function () {
+	global $wp_rewrite;
+
+	if (!$wp_rewrite->using_permalinks()) {
+		return;
+	}
+
+	$rules = get_option('rewrite_rules');
+	$keys  = is_array($rules) ? array_keys($rules) : [];
+
+	$praefixe = [$wp_rewrite->root . 'tiere/']; // Tierarten
+	$front    = ltrim($wp_rewrite->front, '/'); // z. B. "ratgeber/" (Beiträge)
+	if ($front !== '' && $front !== $wp_rewrite->root) {
+		$praefixe[] = $front;
+	}
+
+	foreach ($praefixe as $praefix) {
+		$vorhanden = false;
+		foreach ($keys as $key) {
+			if (str_starts_with($key, $praefix)) {
+				$vorhanden = true;
+				break;
+			}
+		}
+
+		if (!$vorhanden) {
+			if (!get_transient('wildtierhilfe_rewrite_repariert')) {
+				set_transient('wildtierhilfe_rewrite_repariert', 1, 5 * MINUTE_IN_SECONDS);
+				flush_rewrite_rules(false);
+			}
+			return;
+		}
+	}
+});
 
 /**
  * Gibt es veröffentlichte Beiträge (Ratgeber)? Ohne Beiträge werden der

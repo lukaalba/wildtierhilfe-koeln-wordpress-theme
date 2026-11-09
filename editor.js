@@ -122,7 +122,7 @@
 	wp.blocks.registerBlockType('wildtierhilfe/tierarten', {
 		apiVersion: 3,
 		title: 'Tierarten-Vorschau',
-		description: 'Alle Tierarten als Tabs mit Bild, Textanfang und „Weiter lesen …“. Bearbeiten unter Tierarten.',
+		description: 'Alle Tierarten als Tabs mit Bild, Textanfang und „Weiterlesen …“. Bearbeiten unter Tierarten.',
 		category: 'widgets',
 		icon: 'pets',
 		supports: { html: false },
